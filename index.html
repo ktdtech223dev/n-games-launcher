@@ -2177,7 +2177,7 @@ const SERVER       = 'https://ngames-server-production.up.railway.app';
 const CHAOS_SERVER = 'https://chaos-holdem-server3-production.up.railway.app';
 
 // ─── Launcher version + auto-update ───────────────────────────────────────────
-const LAUNCHER_VERSION          = '1.5.2';
+const LAUNCHER_VERSION          = '1.5.3';
 const LAUNCHER_RELEASES_URL     = 'https://api.github.com/repos/ktdtech223dev/n-games-launcher/releases/latest';
 
 const CREW = [
@@ -2447,7 +2447,7 @@ function renderCrew() {
 
 function summarizeGameState(game_id, gs) {
   if (!gs || !game_id) return null;
-  const activeScreens = ['in_game', 'in_run', 'in_dungeon', 'in_boss', 'in_shop'];
+  const activeScreens = ['in_game', 'in_run', 'in_dungeon', 'in_boss', 'in_shop', 'in_race'];
   if (!activeScreens.includes(gs.screen)) return null;
   const gid = (game_id === 'chaos-holdem') ? 'chaos-casino' : game_id;
   if (gid === 'project-x') {
@@ -2479,6 +2479,13 @@ function summarizeGameState(game_id, gs) {
     if (gs.chips != null) return Number(gs.chips).toLocaleString() + ' chips';
     return null;
   }
+  if (gid === 'nkart') {
+    const parts = [];
+    if (gs.position != null) parts.push('P' + gs.position);
+    if (gs.lap      != null) parts.push('Lap ' + gs.lap);
+    if (gs.best_lap != null) parts.push(gs.best_lap + 's');
+    return parts.join(' \u00b7 ') || null;
+  }
   return null;
 }
 
@@ -2498,6 +2505,7 @@ function gameName(id) {
   if (id==='project-x') return 'N Arena';
   if (id==='chaos-casino'||id==='chaos-holdem') return 'Chaos Casino';
   if (id==='blacks-dungeon') return 'Shape of Blacks';
+  if (id==='nkart') return 'N Kart';
   const names = { 'chaos-holdem': 'Hold\'Em', 'launcher': 'Launcher', 'blacks-dungeon': 'Shape' };
   return names[id] || id;
 }
@@ -2573,6 +2581,9 @@ const GAME_REGISTRY = {
   },
   'cuunsurf': {
     releases_url: 'https://api.github.com/repos/ktdtech223dev/surf-game/releases/latest',
+  },
+  'nkart': {
+    releases_url: 'https://api.github.com/repos/ktdtech223dev/nkart/releases/latest',
   },
 };
 
@@ -2728,6 +2739,7 @@ function makeGameCard(g) {
     'blacks-dungeon': 'https://ngames-server-production.up.railway.app/assets/blacks-dungeon-banner.png',
     'chaos-casino':   'https://ngames-server-production.up.railway.app/assets/chaos-holdem-banner.png',
     'chaos-holdem':   'https://ngames-server-production.up.railway.app/assets/chaos-holdem-banner.png',
+    'nkart':          'https://ngames-server-production.up.railway.app/assets/nkart-banner.png',
   };
   const artUrl = HARDCODED_BANNERS[g.id] || (g.art_url ? `https://ngames-server-production.up.railway.app${g.art_url}` : null);
 
@@ -4599,11 +4611,12 @@ const RECORD_META = {
   'case-sim':       { name:'Case Sim',        emoji:'\uD83D\uDCE6' },
   'cuunsurf':       { name:'CuunSurf',        emoji:'\uD83C\uDFC4' },
   'chaos-casino':   { name:'Chaos Casino',    emoji:'\uD83C\uDCCF' },
+  'nkart':          { name:'N Kart',           emoji:'\uD83C\uDFCE\uFE0F' },
 };
 
 function renderRecords(data, el) {
   // Always show all 5 games, even with no records yet
-  const allGames = ['project-x', 'blacks-dungeon', 'chaos-casino', 'case-sim', 'cuunsurf'];
+  const allGames = ['project-x', 'blacks-dungeon', 'chaos-casino', 'case-sim', 'cuunsurf', 'nkart'];
   const merged   = { ...Object.fromEntries(allGames.map(g => [g, {}])), ...data };
   let html = '';
   for (const [gid, r] of Object.entries(merged)) {
