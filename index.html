@@ -2177,7 +2177,7 @@ const SERVER       = 'https://ngames-server-production.up.railway.app';
 const CHAOS_SERVER = 'https://chaos-holdem-server3-production.up.railway.app';
 
 // ─── Launcher version + auto-update ───────────────────────────────────────────
-const LAUNCHER_VERSION          = '1.5.1';
+const LAUNCHER_VERSION          = '1.5.2';
 const LAUNCHER_RELEASES_URL     = 'https://api.github.com/repos/ktdtech223dev/n-games-launcher/releases/latest';
 
 const CREW = [
@@ -4208,65 +4208,63 @@ function setLauncherTheme(themeId) {
 // ─── Radio ───────────────────────────────────────────────────────────────────
 
 const RADIO_TRACKS = [
-  // ── N Games ────────────────────────────────────────────────────────────────
-  { name:'N GAMES RADIO',       vibe:'N Games Network · Crew station',          genre:'N Games',    url:'https://ice1.somafm.com/beatblender-128-mp3' },
+  // ── N Games ───────────────────────────────────────────────────────────────
+  { name:'N GAMES RADIO',         vibe:'N Games Network — crew station',             genre:'N Games',    url:'https://ice1.somafm.com/beatblender-128-mp3' },
 
-  // ── Hip-Hop & Rap ──────────────────────────────────────────────────────────
-  // New & current rap — RadioKing / Zeno.fm public HLS streams (verified working)
-  { name:'HIP HOP HITS',        vibe:'Current rap & hip-hop hits',              genre:'Hip-Hop',    url:'https://stream.zeno.fm/yn65m6v5o28uv' },
-  { name:'TRAP BANGERS',        vibe:'Hard trap & 808s',                        genre:'Hip-Hop',    url:'https://stream.zeno.fm/0r0xa792kwzuv' },
-  { name:'OLD SCHOOL HIP HOP',  vibe:'90s & 2000s classics',                   genre:'Hip-Hop',    url:'https://stream.zeno.fm/f3zvbqsmwzquv' },
-  { name:'BEAT BLENDER',        vibe:'SomaFM · Hip-Hop / Downtempo',            genre:'Hip-Hop',    url:'https://ice1.somafm.com/beatblender-128-mp3' },
+  // ── Hip-Hop & Rap ──────────────────────────────────────────────────────
+  { name:'HIP HOP HITS',          vibe:'Current rap & hip-hop hits',                genre:'Hip-Hop',    url:'https://stream.zeno.fm/yn65m6v5o28uv' },
+  { name:'OLD SCHOOL HIP HOP',    vibe:'90s & 2000s classics',                      genre:'Hip-Hop',    url:'https://stream.zeno.fm/f3zvbqsmwzquv' },
+  { name:'TRAP BANGERS',          vibe:'Hard trap & 808s',                           genre:'Hip-Hop',    url:'https://stream.zeno.fm/0r0xa792kwzuv' },
+  { name:'BEAT BLENDER',          vibe:'SomaFM · Hip-Hop / Downtempo',                genre:'Hip-Hop',    url:'https://ice1.somafm.com/beatblender-128-mp3' },
 
-  // ── Electronic ─────────────────────────────────────────────────────────────
-  { name:'FLUID',               vibe:'SomaFM · Liquid Drum & Bass',            genre:'Electronic', url:'https://ice1.somafm.com/fluid-128-mp3' },
-  { name:'CLIQHOP IDM',         vibe:'SomaFM · IDM / Clicks & Cuts',           genre:'Electronic', url:'https://ice1.somafm.com/cliqhop-128-mp3' },
-  { name:'DEF CON RADIO',       vibe:'SomaFM · Dark Electronic',               genre:'Electronic', url:'https://ice1.somafm.com/defcon-256-mp3' },
-  { name:'SUBURBS OF GOA',      vibe:'SomaFM · Psychedelic Trance',            genre:'Electronic', url:'https://ice1.somafm.com/suburbsofgoa-128-mp3' },
-  { name:'TECHNO FM',           vibe:'di.fm · Pure Techno',                    genre:'Electronic', url:'https://streams.di.fm/techno' },
-  { name:'HOUSE MUSIC',         vibe:'di.fm · Classic & Deep House',           genre:'Electronic', url:'https://streams.di.fm/house' },
-  { name:'DEEP HOUSE',          vibe:'di.fm · Deep & Soulful House',           genre:'Electronic', url:'https://streams.di.fm/deephouse' },
-  { name:'DRUM & BASS',         vibe:'di.fm · DnB & Jungle',                  genre:'Electronic', url:'https://streams.di.fm/drumandbass' },
-  { name:'DUBSTEP',             vibe:'di.fm · Dubstep & Bass Music',           genre:'Electronic', url:'https://streams.di.fm/dubstep' },
-  { name:'TRANCE',              vibe:'di.fm · Classic Trance',                 genre:'Electronic', url:'https://streams.di.fm/trance' },
-  { name:'PROGRESSIVE HOUSE',   vibe:'di.fm · Progressive House',              genre:'Electronic', url:'https://streams.di.fm/progressivehouse' },
-  { name:'ELECTRO',             vibe:'di.fm · Electro House & Big Room',       genre:'Electronic', url:'https://streams.di.fm/electrohouse' },
-  { name:'AMBIENT',             vibe:'di.fm · Deep Ambient & Space',           genre:'Electronic', url:'https://streams.di.fm/ambient' },
+  // ── Lo-Fi ───────────────────────────────────────────────────────────────────
+  { name:'LOFI HIP HOP',          vibe:'Chill beats to study & grind to',            genre:'Lo-Fi',      url:'https://stream.zeno.fm/mvp8r4yqtc8uv' },
+  { name:'LOFI CHILL',            vibe:'Laid back lo-fi grooves',                    genre:'Lo-Fi',      url:'https://stream.zeno.fm/f3oqdplyh5zuv' },
+  { name:'LOFI JAZZ',             vibe:'Jazz-infused lo-fi beats',                   genre:'Lo-Fi',      url:'https://stream.zeno.fm/ymq2k0gyh5zuv' },
+  { name:'LOFI GAMING',           vibe:'Lo-fi beats built for gaming sessions',      genre:'Lo-Fi',      url:'https://stream.zeno.fm/tbyvtw5fh5zuv' },
+  { name:'LOFI SLEEP',            vibe:'Ultra-chill lo-fi for late nights',          genre:'Lo-Fi',      url:'https://stream.zeno.fm/4d61wp9p9zzuv' },
+  { name:'GROOVE SALAD CLASSIC',  vibe:'SomaFM · Analog ambient & downtempo',         genre:'Lo-Fi',      url:'https://ice1.somafm.com/groovesaladclassic-128-mp3' },
+  { name:'COFFEE SHOP BEATS',     vibe:'SomaFM · Easy morning vibes',                 genre:'Lo-Fi',      url:'https://ice1.somafm.com/groovesalad-256-mp3' },
 
-  // ── Trap / Bass ────────────────────────────────────────────────────────────
-  { name:'TRAP MUSIC',          vibe:'di.fm · Trap & Future Bass',             genre:'Trap',       url:'https://streams.di.fm/trap' },
-  { name:'HARD DANCE',          vibe:'di.fm · Hard Dance & Hardcore',          genre:'Trap',       url:'https://streams.di.fm/harddance' },
-  { name:'HARDSTYLE',           vibe:'di.fm · Hardstyle & Rawstyle',           genre:'Trap',       url:'https://streams.di.fm/hardstyle' },
+  // ── R&B / Soul ─────────────────────────────────────────────────────────
+  { name:'R&B HITS',              vibe:'Current R&B & soul',                         genre:'R&B',        url:'https://stream.zeno.fm/4d61wp9p9zzuv' },
+  { name:'NEO SOUL',              vibe:'Soulful, jazzy R&B vibes',                   genre:'R&B',        url:'https://stream.zeno.fm/tbyvtw5fh5zuv' },
+  { name:'SLOW JAMS',             vibe:'SomaFM · Late night R&B / Jazz',               genre:'R&B',        url:'https://ice1.somafm.com/illstreet-128-mp3' },
 
-  // ── Chill / Vibe ───────────────────────────────────────────────────────────
-  { name:'GROOVE SALAD',        vibe:'SomaFM · Ambient / Downtempo',           genre:'Chill',      url:'https://ice1.somafm.com/groovesalad-256-mp3' },
-  { name:'LUSH',                vibe:'SomaFM · Dreamy Acoustic',               genre:'Chill',      url:'https://ice1.somafm.com/lush-128-mp3' },
-  { name:'DRONE ZONE',          vibe:'SomaFM · Deep Space Ambient',            genre:'Chill',      url:'https://ice1.somafm.com/dronezone-256-mp3' },
-  { name:'DEEP SPACE ONE',      vibe:'SomaFM · Space & Spoken Word',           genre:'Chill',      url:'https://ice1.somafm.com/deepspaceone-128-mp3' },
+  // ── Chill / Vibe ───────────────────────────────────────────────────────
+  { name:'GROOVE SALAD',          vibe:'SomaFM · Ambient / Downtempo',                 genre:'Chill',      url:'https://ice1.somafm.com/groovesalad-256-mp3' },
+  { name:'LUSH',                  vibe:'SomaFM · Dreamy Acoustic',                    genre:'Chill',      url:'https://ice1.somafm.com/lush-128-mp3' },
+  { name:'DRONE ZONE',            vibe:'SomaFM · Deep Space Ambient',                 genre:'Chill',      url:'https://ice1.somafm.com/dronezone-256-mp3' },
+  { name:'DEEP SPACE ONE',        vibe:'SomaFM · Space & Spoken Word',                genre:'Chill',      url:'https://ice1.somafm.com/deepspaceone-128-mp3' },
 
-  // ── R&B / Soul ─────────────────────────────────────────────────────────────
-  { name:'R&B HITS',            vibe:'Current R&B & soul',                     genre:'R&B',        url:'https://stream.zeno.fm/4d61wp9p9zzuv' },
-  { name:'NEO SOUL',            vibe:'Soulful, jazzy R&B vibes',               genre:'R&B',        url:'https://stream.zeno.fm/tbyvtw5fh5zuv' },
-  { name:'SLOW JAMS',           vibe:'SomaFM · Late Night R&B / Jazz',        genre:'R&B',        url:'https://ice1.somafm.com/illstreet-128-mp3' },
+  // ── Electronic ───────────────────────────────────────────────────────────
+  { name:'TECHNO FM',             vibe:'di.fm · Pure Techno',                         genre:'Electronic', url:'https://streams.di.fm/techno' },
+  { name:'HOUSE MUSIC',           vibe:'di.fm · Classic & Deep House',                genre:'Electronic', url:'https://streams.di.fm/house' },
+  { name:'DEEP HOUSE',            vibe:'di.fm · Deep & Soulful House',                genre:'Electronic', url:'https://streams.di.fm/deephouse' },
+  { name:'DRUM & BASS',           vibe:'di.fm · DnB & Jungle',                       genre:'Electronic', url:'https://streams.di.fm/drumandbass' },
+  { name:'TRANCE',                vibe:'di.fm · Classic Trance',                      genre:'Electronic', url:'https://streams.di.fm/trance' },
+  { name:'PROGRESSIVE HOUSE',     vibe:'di.fm · Progressive House',                   genre:'Electronic', url:'https://streams.di.fm/progressivehouse' },
+  { name:'DUBSTEP',               vibe:'di.fm · Dubstep & Bass Music',                genre:'Electronic', url:'https://streams.di.fm/dubstep' },
+  { name:'ELECTRO',               vibe:'di.fm · Electro House & Big Room',            genre:'Electronic', url:'https://streams.di.fm/electrohouse' },
+  { name:'AMBIENT',               vibe:'di.fm · Deep Ambient & Space',                genre:'Electronic', url:'https://streams.di.fm/ambient' },
+  { name:'FLUID',                 vibe:'SomaFM · Liquid Drum & Bass',                 genre:'Electronic', url:'https://ice1.somafm.com/fluid-128-mp3' },
+  { name:'CLIQHOP IDM',           vibe:'SomaFM · IDM / Clicks & Cuts',                genre:'Electronic', url:'https://ice1.somafm.com/cliqhop-128-mp3' },
 
-  // ── Drill / Street ─────────────────────────────────────────────────────────
-  { name:'AFROBEATS',           vibe:'Afrobeats & Afropop',                    genre:'Drill',      url:'https://stream.zeno.fm/q3v0tpmd0tzuv' },
-  { name:'DANCEHALL',           vibe:'di.fm · Reggae & Dancehall',             genre:'Drill',      url:'https://streams.di.fm/reggae' },
+  // ── Drill / World ─────────────────────────────────────────────────────────
+  { name:'AFROBEATS',             vibe:'Afrobeats & Afropop',                        genre:'Drill',      url:'https://stream.zeno.fm/q3v0tpmd0tzuv' },
+  { name:'DANCEHALL',             vibe:'di.fm · Reggae & Dancehall',                  genre:'Drill',      url:'https://streams.di.fm/reggae' },
 
-  // ── Lo-Fi ─────────────────────────────────────────────────────────────────────
-  { name:'LOFI HIP HOP',        vibe:'Chill beats to study & grind to',         genre:'Lo-Fi',      url:'https://stream.zeno.fm/mvp8r4yqtc8uv' },
-  { name:'LOFI CHILL',          vibe:'Laid back lo-fi grooves',                 genre:'Lo-Fi',      url:'https://stream.zeno.fm/f3oqdplyh5zuv' },
-  { name:'LOFI JAZZ',           vibe:'Jazz-infused lo-fi beats',                genre:'Lo-Fi',      url:'https://stream.zeno.fm/ymq2k0gyh5zuv' },
-  { name:'COFFEE SHOP BEATS',   vibe:'SomaFM · Easy morning vibes',             genre:'Lo-Fi',      url:'https://ice1.somafm.com/groovesalad-256-mp3' },
+  // ── Late Night ───────────────────────────────────────────────────────────
+  { name:'MIDNIGHT DRIVE',        vibe:'di.fm · Synthwave & Retrowave',               genre:'Late Night', url:'https://streams.di.fm/synthwave' },
+  { name:'MISSION CONTROL',       vibe:'SomaFM · Space Age Late Night',               genre:'Late Night', url:'https://ice1.somafm.com/missioncontrol-128-mp3' },
+  { name:'DEF CON RADIO',         vibe:'SomaFM · Dark Electronic',                    genre:'Late Night', url:'https://ice1.somafm.com/defcon-256-mp3' },
+  { name:'JAZZ VIBES',            vibe:'SomaFM · Late Night Jazz',                    genre:'Late Night', url:'https://ice1.somafm.com/illstreet-128-mp3' },
 
-  // ── Late Night ─────────────────────────────────────────────────────────────
-  { name:'MIDNIGHT DRIVE',      vibe:'di.fm · Synthwave & Retrowave',          genre:'Late Night', url:'https://streams.di.fm/synthwave' },
-  { name:'LATE NIGHT VIBES',    vibe:'SomaFM · Late Night Downtempo',          genre:'Late Night', url:'https://ice1.somafm.com/groovesalad-256-mp3' },
-  { name:'JAZZ VIBES',          vibe:'SomaFM · Late Night Jazz',               genre:'Late Night', url:'https://ice1.somafm.com/illstreet-128-mp3' },
-
-  // ── Other ──────────────────────────────────────────────────────────────────
-  { name:'UNDERGROUND 80S',     vibe:'SomaFM · Underground Eighties',          genre:'Retro',      url:'https://ice1.somafm.com/u80s-128-mp3' },
-  { name:'METAL DETECTOR',      vibe:'SomaFM · Heavy Metal',                   genre:'Rock',       url:'https://ice1.somafm.com/metal-128-mp3' },
+  // ── Retro / Rock ──────────────────────────────────────────────────────────
+  { name:'UNDERGROUND 80S',       vibe:'SomaFM · Underground Eighties',               genre:'Retro',      url:'https://ice1.somafm.com/u80s-128-mp3' },
+  { name:'SUBURBS OF GOA',        vibe:'SomaFM · Psychedelic Trance',                 genre:'Retro',      url:'https://ice1.somafm.com/suburbsofgoa-128-mp3' },
+  { name:'METAL DETECTOR',        vibe:'SomaFM · Heavy Metal',                        genre:'Rock',       url:'https://ice1.somafm.com/metal-128-mp3' },
+  { name:'HARDSTYLE',             vibe:'di.fm · Hardstyle & Rawstyle',                genre:'Rock',       url:'https://streams.di.fm/hardstyle' },
 ];
 
 let _radioAudio    = null;
@@ -4588,7 +4586,7 @@ async function loadRecords() {
   if (!el) return;
   el.innerHTML = '<div class="lb-empty">Loading...</div>';
   try {
-    const data = await fetch(`${SERVER}/leaderboard/records`).then(r => r.json());
+    const res0 = await fetch(`${SERVER}/leaderboard/records`); if (!res0.ok) throw new Error(res0.status); const data = await res0.json();
     renderRecords(data, el);
   } catch(e) {
     el.innerHTML = '<div class="lb-empty">Failed to load records</div>';
@@ -4604,12 +4602,11 @@ const RECORD_META = {
 };
 
 function renderRecords(data, el) {
-  if (!Object.keys(data).length) {
-    el.innerHTML = '<div class="lb-empty">No records yet. Play some games!</div>';
-    return;
-  }
+  // Always show all 5 games, even with no records yet
+  const allGames = ['project-x', 'blacks-dungeon', 'chaos-casino', 'case-sim', 'cuunsurf'];
+  const merged   = { ...Object.fromEntries(allGames.map(g => [g, {}])), ...data };
   let html = '';
-  for (const [gid, r] of Object.entries(data)) {
+  for (const [gid, r] of Object.entries(merged)) {
     const meta = RECORD_META[gid] || { name: gameName(gid), emoji:'\uD83C\uDFC6' };
     const rows = [];
     if (r.best_score) {
@@ -4672,8 +4669,8 @@ async function loadSeasonLB() {
   el.innerHTML = '<div class="lb-empty">Loading...</div>';
   try {
     const [current, history] = await Promise.all([
-      fetch(`${SERVER}/seasons/current`).then(r => r.json()),
-      fetch(`${SERVER}/seasons/history`).then(r => r.json()),
+      fetch(`${SERVER}/seasons/current`).then(async r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${SERVER}/seasons/history`).then(async r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
     ]);
     renderSeasonLB(current, history, el);
   } catch(e) {
@@ -4694,7 +4691,11 @@ function renderSeasonLB(current, history, el) {
       </div>
     </div>`;
     html += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:20px">';
-    for (const [i, row] of current.leaderboard.entries()) {
+    // Merge server LB with all crew (show 0 NP for crew not yet on the board)
+    const lbMap = Object.fromEntries((current.leaderboard || []).map(r => [r.profile_id, r]));
+    const fullLb = CREW.map(c => lbMap[c.id] || { profile_id: c.id, np_earned: 0, name: c.name, color: c.color, initial: c.initial });
+    fullLb.sort((a, b) => b.np_earned - a.np_earned);
+    for (const [i, row] of fullLb.entries()) {
       const crew = CREW.find(c => c.id === row.profile_id);
       const pct  = maxNP > 0 ? Math.round(row.np_earned / maxNP * 100) : 0;
       html += `<div class="season-lb-row">
@@ -4814,8 +4815,8 @@ async function renderChallenges() {
 
   try {
     const [active, progress] = await Promise.all([
-      fetch(`${SERVER}/challenges/active`).then(r => r.json()),
-      fetch(`${SERVER}/challenges/progress/${currentProfile?.id}`).then(r => r.json()),
+      fetch(`${SERVER}/challenges/active`).then(async r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${SERVER}/challenges/progress/${currentProfile?.id}`).then(async r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
     ]);
     renderChallengesInner(active, progress, container);
   } catch(e) {
