@@ -1789,6 +1789,47 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
 }
 .hidden { display: none !important; }
 .loading { text-align: center; color: var(--text3); padding: 40px; }
+
+/* ─── Records Board ─────────────────────────────────────────────────── */
+.record-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 12px; margin-top: 8px; }
+.record-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.record-card-game { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.record-card-holder { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.record-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+.record-name { font-size: 13px; font-weight: 600; }
+.record-value { font-size: 22px; font-weight: 700; color: var(--acc); }
+.record-label { font-size: 10px; color: var(--text3); }
+
+/* ─── Season Panel ──────────────────────────────────────────────────── */
+.season-section { margin-top: 0; }
+.season-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.season-title { font-size: 15px; font-weight: 700; }
+.season-timer { font-size: 11px; color: var(--text3); }
+.season-lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+.season-rank { font-size: 11px; font-weight: 700; color: var(--text3); width: 28px; }
+.season-rank.gold { color: #f0c040; }
+.season-rank.silver { color: #aaa; }
+.season-rank.bronze { color: #cd7f32; }
+.season-np { margin-left: auto; font-size: 14px; font-weight: 700; color: var(--acc); }
+
+/* ─── Bets Panel ────────────────────────────────────────────────────── */
+.bets-panel { margin-bottom: 16px; }
+.bets-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.bets-panel-title { font-size: 13px; font-weight: 700; }
+.bets-toggle-btn { font-size: 11px; color: var(--acc); cursor: pointer; background: none; border: none; padding: 0; }
+.bet-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 6px; }
+.bet-item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.bet-target { font-size: 13px; font-weight: 600; }
+.bet-wager { font-size: 12px; color: var(--acc); font-weight: 700; }
+.bet-detail { font-size: 11px; color: var(--text3); }
+.bet-status { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+.bet-status.open { background: var(--acc)22; color: var(--acc); }
+.bet-status.won  { background: #80e06022; color: #80e060; }
+.bet-status.lost { background: #e0404022; color: #e04040; }
+.bet-place-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.bet-input { background: var(--bg2); border: 1px solid var(--border); color: var(--text1); border-radius: 6px; padding: 6px 10px; font-size: 12px; width: 80px; }
+.bet-select { background: var(--bg2); border: 1px solid var(--border); color: var(--text1); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+.bet-submit-btn { background: var(--acc); color: #000; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -2136,7 +2177,7 @@ const SERVER       = 'https://ngames-server-production.up.railway.app';
 const CHAOS_SERVER = 'https://chaos-holdem-server3-production.up.railway.app';
 
 // ─── Launcher version + auto-update ───────────────────────────────────────────
-const LAUNCHER_VERSION          = '1.5.0';
+const LAUNCHER_VERSION          = '1.5.1';
 const LAUNCHER_RELEASES_URL     = 'https://api.github.com/repos/ktdtech223dev/n-games-launcher/releases/latest';
 
 const CREW = [
@@ -2989,7 +3030,8 @@ async function loadLeaderboard(gameId = '') {
     merged.slice(0, 25).forEach((row, i) => {
       const crew     = CREW.find(c => c.id === row.profile_id);
       const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-      const mainVal  = row[sortKey] != null ? Number(row[sortKey]).toLocaleString() : '—';
+      // CuunSurf is time-based — suppress score column
+      const mainVal  = row.game_id === 'cuunsurf' ? '—' : (row[sortKey] != null ? Number(row[sortKey]).toLocaleString() : '—');
 
       const el = document.createElement('div');
       el.className = 'lb-row';
