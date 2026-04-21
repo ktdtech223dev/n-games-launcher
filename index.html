@@ -1830,18 +1830,8 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
 .bet-input { background: var(--bg2); border: 1px solid var(--border); color: var(--text1); border-radius: 6px; padding: 6px 10px; font-size: 12px; width: 80px; }
 .bet-select { background: var(--bg2); border: 1px solid var(--border); color: var(--text1); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
 .bet-submit-btn { background: var(--acc); color: #000; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
-/* ── N Apps hub ───────────────────────────────────────────────── */
-.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;}
-.app-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px;}
-.app-card-header{display:flex;align-items:center;gap:14px;}
-.app-icon{font-size:2.2rem;line-height:1;}
-.app-meta{flex:1;}
-.app-name{font-weight:600;font-size:1.05rem;color:#fff;}
-.app-version{font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px;}
-.app-desc{font-size:.85rem;color:rgba(255,255,255,.55);margin:0;line-height:1.5;}
-.app-tags{display:flex;gap:6px;flex-wrap:wrap;}
-.app-tag{background:rgba(255,255,255,.07);border-radius:4px;padding:2px 8px;font-size:.72rem;color:rgba(255,255,255,.45);}
-.app-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+/* ── N Apps hub (reuses .game-card / .game-art / .game-btn) ──── */
+.apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
 </style>
 </head>
 <body>
@@ -2207,7 +2197,7 @@ const SERVER       = 'https://ngames-server-production.up.railway.app';
 const CHAOS_SERVER = 'https://chaos-holdem-server3-production.up.railway.app';
 
 // ─── Launcher version + auto-update ───────────────────────────────────────────
-const LAUNCHER_VERSION          = '1.5.4';
+const LAUNCHER_VERSION          = '1.5.5';
 const LAUNCHER_RELEASES_URL     = 'https://api.github.com/repos/ktdtech223dev/n-games-launcher/releases/latest';
 
 const CREW = [
@@ -2623,8 +2613,9 @@ const N_APPS = [
     id:            'nstreams',
     name:          'N Streams',
     emoji:         '📺',
+    accent:        '#9d5cff',
     description:   'Movies, shows & watch parties for the crew.',
-    tags:          ['video', 'streaming', 'watch party'],
+    banner_url:    null,   // set to '/assets/nstreams-banner.png' once uploaded
     releases_url:  'https://api.github.com/repos/ktdtech223dev/nstreams/releases/latest',
     releases_page: 'https://github.com/ktdtech223dev/nstreams/releases/latest',
   },
@@ -3635,23 +3626,29 @@ function renderAppsTab(versions) {
   }
 
   grid.innerHTML = N_APPS.map(app => {
-    const remote = versions[app.id] || {};
-    const ver    = remote.version ? `v${remote.version}` : '—';
-    return `<div class="app-card">
-      <div class="app-card-header">
-        <div class="app-icon">${app.emoji}</div>
-        <div class="app-meta">
-          <div class="app-name">${app.name}</div>
-          <div class="app-version">${ver}</div>
-        </div>
+    const remote  = versions[app.id] || {};
+    const ver     = remote.version ? `v${remote.version}` : '';
+    const accent  = app.accent || '#9d5cff';
+    const txtCol  = '#fff';
+    const artHTML = app.banner_url
+      ? `<img src="${app.banner_url}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`
+      : `<div class="game-art-inner" style="background:${accent}22;color:${accent};font-size:52px">${app.emoji}</div>`;
+
+    return `<div class="game-card" style="cursor:default">
+      <div class="game-art">
+        ${artHTML}
+        <div class="game-art-gradient"></div>
+        <span class="game-badge live">App</span>
       </div>
-      <p class="app-desc">${app.description}</p>
-      <div class="app-tags">${(app.tags||[]).map(t=>`<span class="app-tag">${t}</span>`).join('')}</div>
-      <div class="app-actions">
-        <button class="btn-primary" onclick="appLaunch('${app.id}')">▶ Launch</button>
-        <button class="btn-outline" onclick="appInstall('${app.id}')">⬇ Install</button>
-        <button class="btn-ghost"   onclick="appBrowse('${app.id}')">📁 Locate</button>
-        <button class="btn-ghost"   onclick="window.electron&&window.electron.openExternal('${app.releases_page}')">↗ GitHub</button>
+      <div class="game-info">
+        <div class="game-title">${app.name}${ver ? `<span style="font-size:10px;font-weight:400;color:var(--text3);margin-left:6px">${ver}</span>` : ''}</div>
+        <div class="game-desc">${app.description}</div>
+      </div>
+      <div class="game-action-row">
+        <button class="game-btn primary" style="background:${accent};color:${txtCol}" onclick="appLaunch('${app.id}')">▶ Launch</button>
+        <button class="game-btn secondary" onclick="appInstall('${app.id}')">⬇</button>
+        <button class="game-btn secondary" onclick="appBrowse('${app.id}')">📁</button>
+        <button class="game-btn secondary" onclick="window.electron&&window.electron.openExternal('${app.releases_page}')">↗</button>
       </div>
     </div>`;
   }).join('');
