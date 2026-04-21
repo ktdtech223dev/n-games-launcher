@@ -1830,6 +1830,18 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
 .bet-input { background: var(--bg2); border: 1px solid var(--border); color: var(--text1); border-radius: 6px; padding: 6px 10px; font-size: 12px; width: 80px; }
 .bet-select { background: var(--bg2); border: 1px solid var(--border); color: var(--text1); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
 .bet-submit-btn { background: var(--acc); color: #000; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+/* ── N Apps hub ───────────────────────────────────────────────── */
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;}
+.app-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px;}
+.app-card-header{display:flex;align-items:center;gap:14px;}
+.app-icon{font-size:2.2rem;line-height:1;}
+.app-meta{flex:1;}
+.app-name{font-weight:600;font-size:1.05rem;color:#fff;}
+.app-version{font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px;}
+.app-desc{font-size:.85rem;color:rgba(255,255,255,.55);margin:0;line-height:1.5;}
+.app-tags{display:flex;gap:6px;flex-wrap:wrap;}
+.app-tag{background:rgba(255,255,255,.07);border-radius:4px;padding:2px 8px;font-size:.72rem;color:rgba(255,255,255,.45);}
+.app-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -1889,6 +1901,9 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
       </div>
       <div class="nav-item" data-tab="radio"        onclick="switchTab('radio')">
         <span class="icon"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4" opacity=".7"/><circle cx="4.5" cy="9.5" r="2" stroke="currentColor" stroke-width="1.4" opacity=".7"/><line x1="8.5" y1="7.5" x2="12.5" y2="7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".7"/><line x1="8.5" y1="10" x2="11" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".7"/><path d="M5 5L9 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/></svg></span> Radio
+      </div>
+      <div class="nav-item" data-tab="apps"          onclick="switchTab('apps')">
+        <span class="icon"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity=".7"/><rect x="8.5" y="1" width="5.5" height="5.5" rx="1.2" fill="currentColor" opacity=".7"/><rect x="1" y="8.5" width="5.5" height="2.5" rx="1" fill="currentColor" opacity=".7"/><rect x="8.5" y="8.5" width="5.5" height="2.5" rx="1" fill="currentColor" opacity=".4"/><rect x="1" y="12" width="13" height="2" rx="1" fill="currentColor" opacity=".4"/></svg></span> Apps
       </div>
       <div class="nav-item" data-tab="settings"     onclick="switchTab('settings')">
         <span class="icon"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="2.2" stroke="currentColor" stroke-width="1.4" opacity=".7"/><path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2M2.93 2.93l1.41 1.41M10.66 10.66l1.41 1.41M2.93 12.07l1.41-1.41M10.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".7"/></svg></span> Settings
@@ -2067,6 +2082,21 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
       <div style="position:relative;flex:1;overflow:hidden;">
         <canvas id="eq-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0.12;z-index:0;"></canvas>
         <div style="position:relative;z-index:1;padding:16px 28px 28px;height:100%;overflow-y:auto;" id="radio-tab-content"></div>
+      </div>
+    </div>
+
+    <!-- Apps -->
+    <div class="tab" id="tab-apps">
+      <div style="padding:28px 28px 0">
+        <div class="tab-header">
+          <h1>N Apps</h1>
+          <p>Your ecosystem</p>
+        </div>
+      </div>
+      <div style="padding:20px 28px 28px;overflow-y:auto;flex:1;">
+        <div class="apps-grid" id="apps-grid">
+          <div class="loading-placeholder">Loading apps…</div>
+        </div>
       </div>
     </div>
 
@@ -2586,6 +2616,19 @@ const GAME_REGISTRY = {
     releases_url: 'https://api.github.com/repos/ktdtech223dev/nkart/releases/latest',
   },
 };
+
+// N Ecosystem Apps — separate apps that live outside the game library
+const N_APPS = [
+  {
+    id:            'nstreams',
+    name:          'N Streams',
+    emoji:         '📺',
+    description:   'Movies, shows & watch parties for the crew.',
+    tags:          ['video', 'streaming', 'watch party'],
+    releases_url:  'https://api.github.com/repos/ktdtech223dev/nstreams/releases/latest',
+    releases_page: 'https://github.com/ktdtech223dev/nstreams/releases/latest',
+  },
+];
 
 // Bug #4 fix: store full game objects by id so onclick attrs only pass the id (no JSON.stringify)
 const gamesMap = {};
@@ -3519,7 +3562,7 @@ function onMessage(msg) {
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
 
-const TAB_ORDER = ['library', 'leaderboard', 'wall', 'challenges', 'messages', 'achievements', 'stats', 'radio', 'settings'];
+const TAB_ORDER = ['library', 'leaderboard', 'wall', 'challenges', 'messages', 'achievements', 'stats', 'radio', 'apps', 'settings'];
 let _currentTabIdx = 0;
 
 function switchTab(name) {
@@ -3554,8 +3597,88 @@ function switchTab(name) {
   if (name === 'achievements') renderAchievements();
   if (name === 'stats')        renderStats();
   if (name === 'challenges')   renderChallenges();
+  if (name === 'apps')         loadAppsTab();
   if (name === 'leaderboard')  { /* handled above */ }
   if (name !== 'radio')        stopEQ();
+}
+
+// ─── N Apps hub ───────────────────────────────────────────────────────────────
+
+async function loadAppsTab() {
+  const grid = document.getElementById('apps-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="loading-placeholder">Checking for updates…</div>';
+
+  const versions = {};
+  await Promise.all(N_APPS.map(async app => {
+    try {
+      const r = await fetch(app.releases_url);
+      if (!r.ok) throw new Error(r.status);
+      const d = await r.json();
+      versions[app.id] = {
+        version:   (d.tag_name || '').replace(/^v/, ''),
+        asset_url: d.assets?.[0]?.browser_download_url || null,
+      };
+    } catch (_) {}
+  }));
+
+  renderAppsTab(versions);
+}
+
+function renderAppsTab(versions) {
+  const grid = document.getElementById('apps-grid');
+  if (!grid) return;
+
+  if (!N_APPS.length) {
+    grid.innerHTML = '<div class="loading-placeholder">No apps yet.</div>';
+    return;
+  }
+
+  grid.innerHTML = N_APPS.map(app => {
+    const remote = versions[app.id] || {};
+    const ver    = remote.version ? `v${remote.version}` : '—';
+    return `<div class="app-card">
+      <div class="app-card-header">
+        <div class="app-icon">${app.emoji}</div>
+        <div class="app-meta">
+          <div class="app-name">${app.name}</div>
+          <div class="app-version">${ver}</div>
+        </div>
+      </div>
+      <p class="app-desc">${app.description}</p>
+      <div class="app-tags">${(app.tags||[]).map(t=>`<span class="app-tag">${t}</span>`).join('')}</div>
+      <div class="app-actions">
+        <button class="btn-primary" onclick="appLaunch('${app.id}')">▶ Launch</button>
+        <button class="btn-outline" onclick="appInstall('${app.id}')">⬇ Install</button>
+        <button class="btn-ghost"   onclick="appBrowse('${app.id}')">📁 Locate</button>
+        <button class="btn-ghost"   onclick="window.electron&&window.electron.openExternal('${app.releases_page}')">↗ GitHub</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function appLaunch(id) {
+  if (!window.electron) { alert('Electron not available in browser mode.'); return; }
+  const app = N_APPS.find(a => a.id === id);
+  if (!app) return;
+  const res = await window.electron.launchGame({ id, name: app.name, url: null });
+  if (res?.error === 'exe_not_found' || res?.error === 'not_installed') {
+    if (confirm(`${app.name} isn't installed. Locate the exe?`)) await appBrowse(id);
+  }
+}
+
+async function appInstall(id) {
+  if (!window.electron) return;
+  const app = N_APPS.find(a => a.id === id);
+  if (!app) return;
+  await window.electron.installGame({ id, releases_url: app.releases_url });
+  loadAppsTab();
+}
+
+async function appBrowse(id) {
+  if (!window.electron) return;
+  const res = await window.electron.browseGame(id);
+  if (res?.ok) loadAppsTab();
 }
 
 // ─── Server status & ping ─────────────────────────────────────────────────────
