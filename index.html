@@ -2197,7 +2197,7 @@ const SERVER       = 'https://ngames-server-production.up.railway.app';
 const CHAOS_SERVER = 'https://chaos-holdem-server3-production.up.railway.app';
 
 // ─── Launcher version + auto-update ───────────────────────────────────────────
-const LAUNCHER_VERSION          = '1.5.7';
+const LAUNCHER_VERSION          = '1.5.8';
 const LAUNCHER_RELEASES_URL     = 'https://api.github.com/repos/ktdtech223dev/n-games-launcher/releases/latest';
 
 const CREW = [
@@ -3624,7 +3624,8 @@ async function loadAppsTab() {
       if (state.installed && app.releases_url) {
         window.electron.checkUpdate({ releases_url: app.releases_url }).then(update => {
           if (!update) return;
-          if (versionIsNewer(update.remote_version, state.installed_version)) {
+          const needsUpdate = !state.installed_version || versionIsNewer(update.remote_version, state.installed_version);
+          if (needsUpdate) {
             appInstallState[app.id] = { ...state, update };
             refreshAppCardById(app.id);
           }
@@ -3796,7 +3797,8 @@ async function checkAppUpdate(id) {
   const btn  = card?.querySelector('.game-action-row .game-btn.secondary');
   if (btn) { btn.textContent = '...'; btn.disabled = true; }
   const update = await window.electron.checkUpdate({ releases_url: app.releases_url }).catch(() => null);
-  if (update && versionIsNewer(update.remote_version, state.installed_version)) {
+  const needsUpdate = update && (!state.installed_version || versionIsNewer(update.remote_version, state.installed_version));
+  if (needsUpdate) {
     appInstallState[id] = { ...state, update };
     refreshAppCardById(id);
   } else {
@@ -3812,7 +3814,7 @@ async function checkAllAppsUpdates() {
     if (!state.installed) continue;
     try {
       const update = await window.electron.checkUpdate({ releases_url: app.releases_url });
-      if (update && versionIsNewer(update.remote_version, state.installed_version)) {
+      if (update && (!state.installed_version || versionIsNewer(update.remote_version, state.installed_version))) {
         appInstallState[app.id] = { ...state, update };
         refreshAppCardById(app.id);
       }
