@@ -2197,7 +2197,7 @@ const SERVER       = 'https://ngames-server-production.up.railway.app';
 const CHAOS_SERVER = 'https://chaos-holdem-server3-production.up.railway.app';
 
 // ─── Launcher version + auto-update ───────────────────────────────────────────
-const LAUNCHER_VERSION          = '1.5.6';
+const LAUNCHER_VERSION          = '1.5.7';
 const LAUNCHER_RELEASES_URL     = 'https://api.github.com/repos/ktdtech223dev/n-games-launcher/releases/latest';
 
 const CREW = [
@@ -2625,6 +2625,8 @@ const N_APPS = [
 const gamesMap = {};
 // Per-card install state cache: game_id → { installed, installed_version, update }
 const gameInstallState = {};
+// App install/update state — mirrors gameInstallState for N_APPS entries
+const appInstallState  = {};
 // Track running games
 const runningGames = new Set();
 // Cache games list so Library tab re-renders don't re-fetch every time
@@ -3598,84 +3600,224 @@ function switchTab(name) {
 async function loadAppsTab() {
   const grid = document.getElementById('apps-grid');
   if (!grid) return;
-  grid.innerHTML = '<div class="loading-placeholder">Checking for updates…</div>';
+  grid.innerHTML = '<div class="loading-placeholder">Loading apps…</div>';
 
-  const versions = {};
-  await Promise.all(N_APPS.map(async app => {
-    try {
-      const r = await fetch(app.releases_url);
-      if (!r.ok) throw new Error(r.status);
-      const d = await r.json();
-      versions[app.id] = {
-        version:   (d.tag_name || '').replace(/^v/, ''),
-        asset_url: d.assets?.[0]?.browser_download_url || null,
-      };
-    } catch (_) {}
-  }));
-
-  renderAppsTab(versions);
-}
-
-function renderAppsTab(versions) {
-  const grid = document.getElementById('apps-grid');
-  if (!grid) return;
-
-  if (!N_APPS.length) {
-    grid.innerHTML = '<div class="loading-placeholder">No apps yet.</div>';
-    return;
+  // 1. Check local install state for every app
+  if (window.electron) {
+    for (const app of N_APPS) {
+      try {
+        const info = await window.electron.installInfo(app.id);
+        appInstallState[app.id] = { installed: info.installed, installed_version: info.installed_version };
+      } catch (_) {
+        appInstallState[app.id] = { installed: false, installed_version: null };
+      }
+    }
   }
 
+  // 2. Render immediately with install state
+  renderAppsTab();
+
+  // 3. Async update checks for installed apps
+  if (window.electron) {
+    for (const app of N_APPS) {
+      const state = appInstallState[app.id] || {};
+      if (state.installed && app.releases_url) {
+        window.electron.checkUpdate({ releases_url: app.releases_url }).then(update => {
+          if (!update) return;
+          if (versionIsNewer(update.remote_version, state.installed_version)) {
+            appInstallState[app.id] = { ...state, update };
+            refreshAppCardById(app.id);
+          }
+        }).catch(() => {});
+      }
+    }
+  }
+}
+
+function renderAppsTab() {
+  const grid = document.getElementById('apps-grid');
+  if (!grid) return;
+  if (!N_APPS.length) { grid.innerHTML = '<div class="loading-placeholder">No apps yet.</div>'; return; }
+
   grid.innerHTML = N_APPS.map(app => {
-    const remote  = versions[app.id] || {};
-    const ver     = remote.version ? `v${remote.version}` : '';
     const accent  = app.accent || '#9d5cff';
-    const txtCol  = '#fff';
+    const state   = appInstallState[app.id] || {};
     const artHTML = app.banner_url
       ? `<img src="${app.banner_url}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`
       : `<div class="game-art-inner" style="background:${accent}22;color:${accent};font-size:52px">${app.emoji}</div>`;
 
-    return `<div class="game-card" style="cursor:default">
+    return `<div class="game-card" data-app-id="${app.id}" style="cursor:default">
       <div class="game-art">
         ${artHTML}
         <div class="game-art-gradient"></div>
         <span class="game-badge live">App</span>
       </div>
       <div class="game-info">
-        <div class="game-title">${app.name}${ver ? `<span style="font-size:10px;font-weight:400;color:var(--text3);margin-left:6px">${ver}</span>` : ''}</div>
+        <div class="game-title">${app.name}</div>
         <div class="game-desc">${app.description}</div>
       </div>
-      <div class="game-action-row">
-        <button class="game-btn primary" style="background:${accent};color:${txtCol}" onclick="appLaunch('${app.id}')">▶ Launch</button>
-        <button class="game-btn secondary" onclick="appInstall('${app.id}')">⬇</button>
-        <button class="game-btn secondary" onclick="appBrowse('${app.id}')">📁</button>
-        <button class="game-btn secondary" onclick="window.electron&&window.electron.openExternal('${app.releases_page}')">↗</button>
-      </div>
+      ${makeAppCardBottom(app, state)}
     </div>`;
   }).join('');
 }
 
+function makeAppCardBottom(app, state) {
+  const accent     = app.accent || '#9d5cff';
+  const installed  = state.installed;
+  const hasUpdate  = !!state.update;
+  const ver        = state.installed_version;
+  const dotClass   = installed ? 'yes' : 'no';
+  const dotLabel   = installed ? `Installed${ver ? ' v' + ver : ''}` : 'Not installed';
+  const folderIcon = `<svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor"><path d="M1 3h4l1.5 1.5H12V11H1V3Z" stroke="currentColor" stroke-width="1.2" fill="none" opacity=".8"/></svg>`;
+  const refreshIcon= `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10.5 6A4.5 4.5 0 112.5 3.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.5 1v2.5H5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const ghIcon     = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2h8v8H2z" stroke="currentColor" stroke-width="1.2" opacity=".6"/><path d="M7 2l3 3M10 2H7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+
+  let buttons = '';
+  if (!installed) {
+    buttons = `
+      <button class="game-btn primary" style="background:${accent};color:#fff" onclick="appInstall('${app.id}')">⬇ Install</button>
+      <button class="game-btn secondary" title="Locate existing install" onclick="appBrowse('${app.id}')">${folderIcon}</button>
+      <button class="game-btn secondary" title="GitHub releases" onclick="window.electron&&window.electron.openExternal('${app.releases_page}')">${ghIcon}</button>`;
+  } else if (hasUpdate) {
+    buttons = `
+      <button class="game-btn primary" style="background:#e04040;color:#fff" onclick="updateApp('${app.id}')">⬆ Update to v${state.update.remote_version}</button>
+      <button class="game-btn secondary" onclick="appLaunch('${app.id}')">Launch</button>`;
+  } else {
+    buttons = `
+      <button class="game-btn primary" style="background:${accent};color:#fff" onclick="appLaunch('${app.id}')">▶ Launch</button>
+      <button class="game-btn secondary" title="Check for updates" onclick="checkAppUpdate('${app.id}')">${refreshIcon}</button>
+      <button class="game-btn secondary" title="GitHub releases" onclick="window.electron&&window.electron.openExternal('${app.releases_page}')">${ghIcon}</button>`;
+  }
+
+  return `<div class="game-card-bottom">
+    <div class="game-status-row">
+      <div class="install-dot ${dotClass}"></div>
+      <div class="install-label">${dotLabel}</div>
+      ${hasUpdate ? `<div class="update-pill">v${state.update.remote_version} available</div>` : ''}
+    </div>
+    <div class="game-action-row">${buttons}</div>
+  </div>`;
+}
+
+function refreshAppCardById(id) {
+  const app  = N_APPS.find(a => a.id === id);
+  const card = document.querySelector(`[data-app-id="${id}"]`);
+  if (!app || !card) return;
+  const bottom = card.querySelector('.game-card-bottom');
+  if (bottom) bottom.outerHTML = makeAppCardBottom(app, appInstallState[id] || {});
+}
+
 async function appLaunch(id) {
-  if (!window.electron) { alert('Electron not available in browser mode.'); return; }
+  if (!window.electron) return;
   const app = N_APPS.find(a => a.id === id);
   if (!app) return;
   const res = await window.electron.launchGame({ id, name: app.name, url: null });
   if (res?.error === 'exe_not_found' || res?.error === 'not_installed') {
-    if (confirm(`${app.name} isn't installed. Locate the exe?`)) await appBrowse(id);
+    if (confirm(`${app.name} not found. Locate the exe?`)) await appBrowse(id);
   }
 }
 
 async function appInstall(id) {
   if (!window.electron) return;
-  const app = N_APPS.find(a => a.id === id);
+  const app  = N_APPS.find(a => a.id === id);
   if (!app) return;
-  await window.electron.installGame({ id, releases_url: app.releases_url });
-  loadAppsTab();
+  const card = document.querySelector(`[data-app-id="${id}"]`);
+  const row  = card?.querySelector('.game-action-row');
+  if (row) row.innerHTML = '<button class="game-btn secondary" disabled>Checking release…</button>';
+
+  const update = await window.electron.checkUpdate({ releases_url: app.releases_url });
+  if (!update?.asset_url) {
+    if (row) row.innerHTML = '<button class="game-btn secondary" disabled>No release found</button>';
+    return;
+  }
+  if (row) row.innerHTML = '<button class="game-btn secondary" disabled>Downloading 0%</button>';
+  window.electron.onDownloadProgress((gid, pct) => {
+    if (gid !== id) return;
+    const btn = document.querySelector(`[data-app-id="${gid}"] .game-action-row .game-btn`);
+    if (btn) btn.textContent = `${pct}%`;
+  });
+
+  const result = await window.electron.installGame({
+    game_id: id, asset_url: update.asset_url, asset_type: update.asset_type, remote_version: update.remote_version,
+  });
+  if (result?.ok) {
+    appInstallState[id] = { installed: true, installed_version: result.installed_version, update: null };
+    if (result.type === 'exe') {
+      if (row) row.innerHTML = '<button class="game-btn secondary" disabled>Installer launched — run it</button>';
+      setTimeout(() => refreshAppCardById(id), 3000);
+    } else {
+      refreshAppCardById(id);
+    }
+  } else {
+    if (row) row.innerHTML = `<button class="game-btn secondary" disabled>${result?.error || 'Install failed'}</button>`;
+  }
+}
+
+async function updateApp(id) {
+  const app   = N_APPS.find(a => a.id === id);
+  const state = appInstallState[id];
+  if (!app || !state?.update?.asset_url || !window.electron) return;
+  const card = document.querySelector(`[data-app-id="${id}"]`);
+  const row  = card?.querySelector('.game-action-row');
+  if (row) row.innerHTML = '<button class="game-btn secondary" disabled>Downloading 0%</button>';
+  window.electron.onDownloadProgress((gid, pct) => {
+    if (gid !== id) return;
+    const btn = document.querySelector(`[data-app-id="${gid}"] .game-action-row .game-btn`);
+    if (btn) btn.textContent = `${pct}%`;
+  });
+  const result = await window.electron.installGame({
+    game_id: id, asset_url: state.update.asset_url, asset_type: state.update.asset_type, remote_version: state.update.remote_version,
+  });
+  if (result?.ok) {
+    appInstallState[id] = { installed: true, installed_version: result.installed_version, update: null };
+    if (result.type === 'exe') {
+      if (row) row.innerHTML = '<button class="game-btn secondary" disabled>Installer launched — run it</button>';
+      setTimeout(() => refreshAppCardById(id), 3000);
+    } else { refreshAppCardById(id); }
+  } else {
+    if (row) row.innerHTML = '<button class="game-btn secondary" disabled>Update failed</button>';
+  }
 }
 
 async function appBrowse(id) {
   if (!window.electron) return;
   const res = await window.electron.browseGame(id);
-  if (res?.ok) loadAppsTab();
+  if (res) {
+    appInstallState[id] = { installed: true, installed_version: res.installed_version };
+    refreshAppCardById(id);
+  }
+}
+
+async function checkAppUpdate(id) {
+  const app   = N_APPS.find(a => a.id === id);
+  const state = appInstallState[id] || {};
+  if (!app || !window.electron) return;
+  const card = document.querySelector(`[data-app-id="${id}"]`);
+  const btn  = card?.querySelector('.game-action-row .game-btn.secondary');
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  const update = await window.electron.checkUpdate({ releases_url: app.releases_url }).catch(() => null);
+  if (update && versionIsNewer(update.remote_version, state.installed_version)) {
+    appInstallState[id] = { ...state, update };
+    refreshAppCardById(id);
+  } else {
+    if (btn) { btn.textContent = '✓'; btn.disabled = false; setTimeout(() => { if (btn.isConnected) btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10.5 6A4.5 4.5 0 112.5 3.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.5 1v2.5H5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }, 2000); }
+  }
+}
+
+// Called periodically and on boot — checks updates for all installed apps in background
+async function checkAllAppsUpdates() {
+  if (!window.electron) return;
+  for (const app of N_APPS) {
+    const state = appInstallState[app.id] || {};
+    if (!state.installed) continue;
+    try {
+      const update = await window.electron.checkUpdate({ releases_url: app.releases_url });
+      if (update && versionIsNewer(update.remote_version, state.installed_version)) {
+        appInstallState[app.id] = { ...state, update };
+        refreshAppCardById(app.id);
+      }
+    } catch (_) {}
+  }
 }
 
 // ─── Server status & ping ─────────────────────────────────────────────────────
@@ -3804,9 +3946,11 @@ async function checkLauncherUpdate() {
 
 function scheduleAutoUpdateChecks() {
   // Boot check
-  setTimeout(checkLauncherUpdate, UPDATE_CHECK_BOOT_DELAY);
+  setTimeout(checkLauncherUpdate,   UPDATE_CHECK_BOOT_DELAY);
+  setTimeout(checkAllAppsUpdates,   UPDATE_CHECK_BOOT_DELAY + 3000);
   // Periodic check every 12 hours
-  setInterval(checkLauncherUpdate, UPDATE_CHECK_INTERVAL_MS);
+  setInterval(checkLauncherUpdate,  UPDATE_CHECK_INTERVAL_MS);
+  setInterval(checkAllAppsUpdates,  UPDATE_CHECK_INTERVAL_MS);
 }
 
 function showUpdateOverlay(update) {
