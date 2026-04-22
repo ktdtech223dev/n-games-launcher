@@ -1832,6 +1832,38 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
 .bet-submit-btn { background: var(--acc); color: #000; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
 /* ── N Apps hub (reuses .game-card / .game-art / .game-btn) ──── */
 .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+
+/* ── First-run Tutorial Overlay ────────────────────────────────── */
+#tutorial-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);
+  align-items: center; justify-content: center;
+  animation: fadeIn 0.25s ease;
+}
+#tutorial-overlay.visible { display: flex; }
+#tutorial-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 40px 44px; max-width: 430px; width: 90%;
+  text-align: center;
+  box-shadow: 0 0 80px rgba(163,86,247,0.25);
+  animation: popIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+.tut-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 24px; }
+.tut-dot  { height: 6px; border-radius: 3px; background: var(--bg4); transition: all 0.3s; }
+.tut-dot.active { background: var(--acc); }
+.tut-dot.done   { background: color-mix(in srgb, var(--acc) 50%, transparent); width: 12px !important; }
+#tutorial-emoji  { font-size: 52px; line-height: 1; margin-bottom: 14px; }
+#tutorial-title  { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 10px; }
+#tutorial-body   { font-size: 13px; color: var(--text3); line-height: 1.65; margin-bottom: 28px; }
+.tut-actions     { display: flex; gap: 10px; justify-content: center; }
+.tut-btn {
+  padding: 10px 22px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  cursor: pointer; border: none; transition: opacity 0.15s;
+}
+.tut-btn.primary { background: var(--acc); color: #fff; }
+.tut-btn.primary:hover { opacity: 0.85; }
+.tut-btn.ghost { background: var(--bg4); color: var(--text2); }
+.tut-btn.ghost:hover { background: var(--border-h); }
 </style>
 </head>
 <body>
@@ -2132,6 +2164,20 @@ body { overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
   <button class="ub-btn dismiss" onclick="document.getElementById('update-banner').classList.remove('visible')">×</button>
 </div>
 
+<!-- ── First-run Tutorial Overlay ───────────────────────────────────────── -->
+<div id="tutorial-overlay">
+  <div id="tutorial-card">
+    <div class="tut-dots" id="tut-dots"></div>
+    <div id="tutorial-emoji">👋</div>
+    <div id="tutorial-title">Welcome!</div>
+    <div id="tutorial-body">Let's show you around.</div>
+    <div class="tut-actions">
+      <button class="tut-btn ghost" id="tut-back-btn" onclick="tutorialBack()">← Back</button>
+      <button class="tut-btn primary" id="tut-next-btn" onclick="tutorialNext()">Next →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Radio bar ──────────────────────────────────────────────────────────── -->
 <div id="radio-bar" style="position:relative">
   <div class="radio-dot" id="radio-dot"></div>
@@ -2197,14 +2243,16 @@ const SERVER       = 'https://ngames-server-production.up.railway.app';
 const CHAOS_SERVER = 'https://chaos-holdem-server3-production.up.railway.app';
 
 // ─── Launcher version + auto-update ───────────────────────────────────────────
-const LAUNCHER_VERSION          = '1.5.8';
+const LAUNCHER_VERSION          = '1.5.9';
 const LAUNCHER_RELEASES_URL     = 'https://api.github.com/repos/ktdtech223dev/n-games-launcher/releases/latest';
 
 const CREW = [
-  { id:'keshawn', name:'Keshawn', color:'#80e060', suit:'♣', initial:'K' },
-  { id:'sean',    name:'Sean',    color:'#f0c040', suit:'♦', initial:'S' },
-  { id:'dart',    name:'Dart',    color:'#e04040', suit:'♥', initial:'D' },
-  { id:'amari',   name:'Amari',   color:'#40c0e0', suit:'♠', initial:'A' },
+  { id:'keshawn', name:'Keshawn', color:'#80e060', suit:'♣', initial:'K'  },
+  { id:'sean',    name:'Sean',    color:'#f0c040', suit:'♦', initial:'S'  },
+  { id:'dart',    name:'Dart',    color:'#e04040', suit:'♥', initial:'D'  },
+  { id:'amari',   name:'Amari',   color:'#40c0e0', suit:'♠', initial:'A'  },
+  { id:'arisa',   name:'Ari',     color:'#ff69b4', suit:'✿', initial:'Ri' },
+  { id:'tyheim',  name:'Tyheim',  color:'#a855f7', suit:'⚡', initial:'T'  },
 ];
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -2366,6 +2414,8 @@ async function selectProfile(id) {
   }
   // Check for launcher update in background after 3s
   scheduleAutoUpdateChecks();
+  // Show first-run tutorial for new crew members (non-blocking)
+  checkAndShowTutorial(id);
 }
 
 // ─── Profiles ─────────────────────────────────────────────────────────────────
@@ -4487,62 +4537,49 @@ function setLauncherTheme(themeId) {
 
 const RADIO_TRACKS = [
   // ── N Games ───────────────────────────────────────────────────────────────
-  { name:'N GAMES RADIO',         vibe:'N Games Network — crew station',             genre:'N Games',    url:'https://ice1.somafm.com/beatblender-128-mp3' },
+  { name:'N GAMES RADIO',         vibe:'N Games Network — crew station',              genre:'N Games',    url:'https://ice1.somafm.com/beatblender-128-mp3' },
 
-  // ── Hip-Hop & Rap ──────────────────────────────────────────────────────
-  { name:'HIP HOP HITS',          vibe:'Current rap & hip-hop hits',                genre:'Hip-Hop',    url:'https://stream.zeno.fm/yn65m6v5o28uv' },
-  { name:'OLD SCHOOL HIP HOP',    vibe:'90s & 2000s classics',                      genre:'Hip-Hop',    url:'https://stream.zeno.fm/f3zvbqsmwzquv' },
-  { name:'TRAP BANGERS',          vibe:'Hard trap & 808s',                           genre:'Hip-Hop',    url:'https://stream.zeno.fm/0r0xa792kwzuv' },
-  { name:'BEAT BLENDER',          vibe:'SomaFM · Hip-Hop / Downtempo',                genre:'Hip-Hop',    url:'https://ice1.somafm.com/beatblender-128-mp3' },
+  // ── Hip-Hop & Rap ─────────────────────────────────────────────────────────
+  { name:'HIP HOP HITS',          vibe:'Current rap & hip-hop hits',                  genre:'Hip-Hop',    url:'https://stream.zeno.fm/yn65m6v5o28uv' },
+  { name:'OLD SCHOOL HIP HOP',    vibe:'90s & 2000s classics',                        genre:'Hip-Hop',    url:'https://stream.zeno.fm/f3zvbqsmwzquv' },
+  { name:'TRAP BANGERS',          vibe:'Hard trap & 808s',                             genre:'Hip-Hop',    url:'https://stream.zeno.fm/0r0xa792kwzuv' },
+  { name:'SF 10/33',              vibe:'SomaFM · Hip-Hop / Indie / Downtempo',         genre:'Hip-Hop',    url:'https://ice1.somafm.com/sf1033-128-mp3' },
 
-  // ── Lo-Fi ───────────────────────────────────────────────────────────────────
-  { name:'LOFI HIP HOP',          vibe:'Chill beats to study & grind to',            genre:'Lo-Fi',      url:'https://stream.zeno.fm/mvp8r4yqtc8uv' },
-  { name:'LOFI CHILL',            vibe:'Laid back lo-fi grooves',                    genre:'Lo-Fi',      url:'https://stream.zeno.fm/f3oqdplyh5zuv' },
-  { name:'LOFI JAZZ',             vibe:'Jazz-infused lo-fi beats',                   genre:'Lo-Fi',      url:'https://stream.zeno.fm/ymq2k0gyh5zuv' },
-  { name:'LOFI GAMING',           vibe:'Lo-fi beats built for gaming sessions',      genre:'Lo-Fi',      url:'https://stream.zeno.fm/tbyvtw5fh5zuv' },
-  { name:'LOFI SLEEP',            vibe:'Ultra-chill lo-fi for late nights',          genre:'Lo-Fi',      url:'https://stream.zeno.fm/4d61wp9p9zzuv' },
-  { name:'GROOVE SALAD CLASSIC',  vibe:'SomaFM · Analog ambient & downtempo',         genre:'Lo-Fi',      url:'https://ice1.somafm.com/groovesaladclassic-128-mp3' },
-  { name:'COFFEE SHOP BEATS',     vibe:'SomaFM · Easy morning vibes',                 genre:'Lo-Fi',      url:'https://ice1.somafm.com/groovesalad-256-mp3' },
+  // ── Lo-Fi ─────────────────────────────────────────────────────────────────
+  { name:'LOFI HIP HOP',          vibe:'Chill beats to study & grind to',              genre:'Lo-Fi',      url:'https://ice1.somafm.com/groovesaladclassic-128-mp3' },
+  { name:'LOFI CHILL',            vibe:'Laid back lo-fi grooves',                      genre:'Lo-Fi',      url:'https://ice1.somafm.com/lush-128-mp3' },
+  { name:'LOFI JAZZ',             vibe:'Jazz-infused lo-fi beats',                     genre:'Lo-Fi',      url:'https://ice1.somafm.com/sonicuniverse-256-mp3' },
+  { name:'LOFI GAMING',           vibe:'Lo-fi IDM built for gaming sessions',          genre:'Lo-Fi',      url:'https://ice1.somafm.com/cliqhop-128-mp3' },
+  { name:'LOFI SLEEP',            vibe:'Ultra-chill ambient for late nights',           genre:'Lo-Fi',      url:'https://ice1.somafm.com/dronezone-256-mp3' },
+  { name:'COFFEE SHOP BEATS',     vibe:'SomaFM · Easy morning vaporwave vibes',        genre:'Lo-Fi',      url:'https://ice1.somafm.com/vaporwaves-128-mp3' },
 
-  // ── R&B / Soul ─────────────────────────────────────────────────────────
-  { name:'R&B HITS',              vibe:'Current R&B & soul',                         genre:'R&B',        url:'https://stream.zeno.fm/4d61wp9p9zzuv' },
-  { name:'NEO SOUL',              vibe:'Soulful, jazzy R&B vibes',                   genre:'R&B',        url:'https://stream.zeno.fm/tbyvtw5fh5zuv' },
-  { name:'SLOW JAMS',             vibe:'SomaFM · Late night R&B / Jazz',               genre:'R&B',        url:'https://ice1.somafm.com/illstreet-128-mp3' },
+  // ── R&B / Soul ────────────────────────────────────────────────────────────
+  { name:'R&B HITS',              vibe:'Current R&B & soul',                           genre:'R&B',        url:'https://ice1.somafm.com/secretagent-128-mp3' },
+  { name:'NEO SOUL',              vibe:'Soulful jazzy R&B vibes',                      genre:'R&B',        url:'https://ice1.somafm.com/folkfwd-128-mp3' },
+  { name:'SLOW JAMS',             vibe:'Late night R&B / jazz · ill street',           genre:'R&B',        url:'https://ice1.somafm.com/illstreet-128-mp3' },
 
-  // ── Chill / Vibe ───────────────────────────────────────────────────────
-  { name:'GROOVE SALAD',          vibe:'SomaFM · Ambient / Downtempo',                 genre:'Chill',      url:'https://ice1.somafm.com/groovesalad-256-mp3' },
-  { name:'LUSH',                  vibe:'SomaFM · Dreamy Acoustic',                    genre:'Chill',      url:'https://ice1.somafm.com/lush-128-mp3' },
-  { name:'DRONE ZONE',            vibe:'SomaFM · Deep Space Ambient',                 genre:'Chill',      url:'https://ice1.somafm.com/dronezone-256-mp3' },
-  { name:'DEEP SPACE ONE',        vibe:'SomaFM · Space & Spoken Word',                genre:'Chill',      url:'https://ice1.somafm.com/deepspaceone-128-mp3' },
+  // ── Chill / Vibe ──────────────────────────────────────────────────────────
+  { name:'GROOVE SALAD',          vibe:'SomaFM · Ambient / Downtempo classic',         genre:'Chill',      url:'https://ice1.somafm.com/groovesalad-256-mp3' },
+  { name:'DRONE ZONE',            vibe:'SomaFM · Deep Space Ambient',                  genre:'Chill',      url:'https://ice1.somafm.com/deepspaceone-128-mp3' },
+  { name:'AFROBEATS',             vibe:'Afrobeats & Afropop',                          genre:'Chill',      url:'https://stream.zeno.fm/q3v0tpmd0tzuv' },
 
-  // ── Electronic ───────────────────────────────────────────────────────────
-  { name:'TECHNO FM',             vibe:'di.fm · Pure Techno',                         genre:'Electronic', url:'https://streams.di.fm/techno' },
-  { name:'HOUSE MUSIC',           vibe:'di.fm · Classic & Deep House',                genre:'Electronic', url:'https://streams.di.fm/house' },
-  { name:'DEEP HOUSE',            vibe:'di.fm · Deep & Soulful House',                genre:'Electronic', url:'https://streams.di.fm/deephouse' },
-  { name:'DRUM & BASS',           vibe:'di.fm · DnB & Jungle',                       genre:'Electronic', url:'https://streams.di.fm/drumandbass' },
-  { name:'TRANCE',                vibe:'di.fm · Classic Trance',                      genre:'Electronic', url:'https://streams.di.fm/trance' },
-  { name:'PROGRESSIVE HOUSE',     vibe:'di.fm · Progressive House',                   genre:'Electronic', url:'https://streams.di.fm/progressivehouse' },
-  { name:'DUBSTEP',               vibe:'di.fm · Dubstep & Bass Music',                genre:'Electronic', url:'https://streams.di.fm/dubstep' },
-  { name:'ELECTRO',               vibe:'di.fm · Electro House & Big Room',            genre:'Electronic', url:'https://streams.di.fm/electrohouse' },
-  { name:'AMBIENT',               vibe:'di.fm · Deep Ambient & Space',                genre:'Electronic', url:'https://streams.di.fm/ambient' },
-  { name:'FLUID',                 vibe:'SomaFM · Liquid Drum & Bass',                 genre:'Electronic', url:'https://ice1.somafm.com/fluid-128-mp3' },
-  { name:'CLIQHOP IDM',           vibe:'SomaFM · IDM / Clicks & Cuts',                genre:'Electronic', url:'https://ice1.somafm.com/cliqhop-128-mp3' },
+  // ── Electronic ────────────────────────────────────────────────────────────
+  { name:'FLUID',                 vibe:'SomaFM · Liquid Drum & Bass',                  genre:'Electronic', url:'https://ice1.somafm.com/fluid-128-mp3' },
+  { name:'DIGITALIS',             vibe:'SomaFM · Hypnotic / Psychedelic DnB',          genre:'Electronic', url:'https://ice1.somafm.com/digitalis-128-mp3' },
+  { name:'POPTRON',               vibe:'SomaFM · Electropop & New Wave',               genre:'Electronic', url:'https://ice1.somafm.com/poptron-128-mp3' },
+  { name:'INDIEPOP ROCKS',        vibe:'SomaFM · Indie Electronic',                    genre:'Electronic', url:'https://ice1.somafm.com/indiepop-128-mp3' },
+  { name:'BAGEL RADIO',           vibe:'SomaFM · Indie Alt / Fringie',                 genre:'Electronic', url:'https://ice1.somafm.com/bagel-128-mp3' },
 
-  // ── Drill / World ─────────────────────────────────────────────────────────
-  { name:'AFROBEATS',             vibe:'Afrobeats & Afropop',                        genre:'Drill',      url:'https://stream.zeno.fm/q3v0tpmd0tzuv' },
-  { name:'DANCEHALL',             vibe:'di.fm · Reggae & Dancehall',                  genre:'Drill',      url:'https://streams.di.fm/reggae' },
-
-  // ── Late Night ───────────────────────────────────────────────────────────
-  { name:'MIDNIGHT DRIVE',        vibe:'di.fm · Synthwave & Retrowave',               genre:'Late Night', url:'https://streams.di.fm/synthwave' },
-  { name:'MISSION CONTROL',       vibe:'SomaFM · Space Age Late Night',               genre:'Late Night', url:'https://ice1.somafm.com/missioncontrol-128-mp3' },
-  { name:'DEF CON RADIO',         vibe:'SomaFM · Dark Electronic',                    genre:'Late Night', url:'https://ice1.somafm.com/defcon-256-mp3' },
-  { name:'JAZZ VIBES',            vibe:'SomaFM · Late Night Jazz',                    genre:'Late Night', url:'https://ice1.somafm.com/illstreet-128-mp3' },
+  // ── Late Night ────────────────────────────────────────────────────────────
+  { name:'MIDNIGHT DRIVE',        vibe:'SomaFM · The Trip — Psychedelic Late Night',   genre:'Late Night', url:'https://ice1.somafm.com/thetrip-128-mp3' },
+  { name:'MISSION CONTROL',       vibe:'SomaFM · Space Age Late Night',                genre:'Late Night', url:'https://ice1.somafm.com/missioncontrol-128-mp3' },
+  { name:'DEF CON RADIO',         vibe:'SomaFM · Dark Electronic',                     genre:'Late Night', url:'https://ice1.somafm.com/defcon-256-mp3' },
+  { name:'JAZZ VIBES',            vibe:'SomaFM · Smooth Late Night Jazz',               genre:'Late Night', url:'https://ice2.somafm.com/illstreet-128-mp3' },
 
   // ── Retro / Rock ──────────────────────────────────────────────────────────
-  { name:'UNDERGROUND 80S',       vibe:'SomaFM · Underground Eighties',               genre:'Retro',      url:'https://ice1.somafm.com/u80s-128-mp3' },
-  { name:'SUBURBS OF GOA',        vibe:'SomaFM · Psychedelic Trance',                 genre:'Retro',      url:'https://ice1.somafm.com/suburbsofgoa-128-mp3' },
-  { name:'METAL DETECTOR',        vibe:'SomaFM · Heavy Metal',                        genre:'Rock',       url:'https://ice1.somafm.com/metal-128-mp3' },
-  { name:'HARDSTYLE',             vibe:'di.fm · Hardstyle & Rawstyle',                genre:'Rock',       url:'https://streams.di.fm/hardstyle' },
+  { name:'UNDERGROUND 80S',       vibe:'SomaFM · Underground Eighties',                genre:'Retro',      url:'https://ice1.somafm.com/u80s-128-mp3' },
+  { name:'SUBURBS OF GOA',        vibe:'SomaFM · Psychedelic Trance',                  genre:'Retro',      url:'https://ice1.somafm.com/suburbsofgoa-128-mp3' },
+  { name:'METAL DETECTOR',        vibe:'SomaFM · Heavy Metal',                         genre:'Rock',       url:'https://ice1.somafm.com/metal-128-mp3' },
 ];
 
 let _radioAudio    = null;
@@ -6024,6 +6061,114 @@ document.addEventListener('keydown', async (e) => {
     _konamiIdx = e.key === _KONAMI[0] ? 1 : 0;
   }
 });
+// ─── First-run Tutorial ───────────────────────────────────────────────────────
+
+const LAUNCHER_TUTORIAL_PROFILES = new Set(['arisa', 'tyheim']);
+
+const LAUNCHER_TUTORIAL_STEPS = [
+  {
+    emoji: '👋',
+    title: 'Welcome to N Games!',
+    body:  "This is your crew hub — games, leaderboards, messages, and more all in one place. Let's take a quick look around.",
+    tab:   null,
+  },
+  {
+    emoji: '🎮',
+    title: 'The Library',
+    body:  'The Library is your home base. Every crew game lives here — launch, browse, or install straight from this tab.',
+    tab:   'library',
+  },
+  {
+    emoji: '📢',
+    title: 'The Wall',
+    body:  "Post clips, reactions, and highlights on the Wall. It's where the crew hangs out between sessions.",
+    tab:   'wall',
+  },
+  {
+    emoji: '🏆',
+    title: 'Leaderboard',
+    body:  'Track your NP (N Points) and see exactly where you rank in the crew. Every win counts.',
+    tab:   'leaderboard',
+  },
+  {
+    emoji: '🎵',
+    title: 'Radio',
+    body:  'Play music while you game — no subscriptions, no interruptions. Just pick a genre and hit play.',
+    tab:   'radio',
+  },
+  {
+    emoji: '📺',
+    title: 'N Apps',
+    body:  'N Streams lives here. Launch the streaming hub, check for updates, or download it if you haven\'t yet.',
+    tab:   'apps',
+  },
+  {
+    emoji: '✅',
+    title: "You're All Set!",
+    body:  "That's the full tour. Head to the Library, pick a game, and get in the session. Let's go! 🚀",
+    tab:   'library',
+  },
+];
+
+let _tutorialStep = 0;
+
+async function checkAndShowTutorial(profileId) {
+  if (!LAUNCHER_TUTORIAL_PROFILES.has(profileId)) return;
+  const done = await window.electron?.storeGet(`launcher_tutorial_done_${profileId}`);
+  if (done) return;
+  _tutorialStep = 0;
+  renderTutorialStep();
+  document.getElementById('tutorial-overlay').classList.add('visible');
+}
+
+function renderTutorialStep() {
+  const steps = LAUNCHER_TUTORIAL_STEPS;
+  const step  = steps[_tutorialStep];
+  const total = steps.length;
+  const isLast  = _tutorialStep === total - 1;
+  const isFirst = _tutorialStep === 0;
+
+  // Dots
+  const dots = document.getElementById('tut-dots');
+  dots.innerHTML = steps.map((_, i) => {
+    const cls = i === _tutorialStep ? 'tut-dot active' : i < _tutorialStep ? 'tut-dot done' : 'tut-dot';
+    const w   = i === _tutorialStep ? '20px' : i < _tutorialStep ? '12px' : '6px';
+    return `<div class="${cls}" style="width:${w}"></div>`;
+  }).join('');
+
+  document.getElementById('tutorial-emoji').textContent = step.emoji;
+  document.getElementById('tutorial-title').textContent = step.title;
+  document.getElementById('tutorial-body').textContent  = step.body;
+
+  // Navigate to highlighted tab (but don't block tutorial)
+  if (step.tab) switchTab(step.tab);
+
+  // Buttons
+  const backBtn = document.getElementById('tut-back-btn');
+  const nextBtn = document.getElementById('tut-next-btn');
+  backBtn.style.display = isFirst ? 'none' : '';
+  nextBtn.textContent   = isLast ? "Let's Go! 🚀" : 'Next →';
+}
+
+function tutorialNext() {
+  const steps = LAUNCHER_TUTORIAL_STEPS;
+  if (_tutorialStep < steps.length - 1) {
+    _tutorialStep++;
+    renderTutorialStep();
+  } else {
+    window.electron?.storeSet(`launcher_tutorial_done_${currentProfile.id}`, true);
+    document.getElementById('tutorial-overlay').classList.remove('visible');
+    switchTab('library');
+  }
+}
+
+function tutorialBack() {
+  if (_tutorialStep > 0) {
+    _tutorialStep--;
+    renderTutorialStep();
+  }
+}
+
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
 boot();
