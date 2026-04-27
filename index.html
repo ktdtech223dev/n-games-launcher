@@ -2824,12 +2824,12 @@ function makeGameCard(g) {
     : '<svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="1.5" opacity=".6"/><circle cx="16" cy="16" r="4" fill="currentColor" opacity=".5"/></svg>';
   // Hardcoded banner URLs — always serve from server, never fall back to missing
   const HARDCODED_BANNERS = {
-    'project-x':             'https://ngames-server-production.up.railway.app/assets/narena-banner.png',
-    'case-sim':              'https://ngames-server-production.up.railway.app/assets/case-sim-banner.png',
-    'cuunsurf':              'https://ngames-server-production.up.railway.app/assets/cuunsurf-banner.png',
-    'blacks-dungeon':        'https://ngames-server-production.up.railway.app/assets/blacks-dungeon-banner.png',
-    'chaos-casino':          'https://ngames-server-production.up.railway.app/assets/chaos-holdem-banner.png',
-    'chaos-holdem':          'https://ngames-server-production.up.railway.app/assets/chaos-holdem-banner.png',
+    'project-x':      'https://ngames-server-production.up.railway.app/assets/narena-banner.png',
+    'case-sim':       'https://ngames-server-production.up.railway.app/assets/case-sim-banner.png',
+    'cuunsurf':       'https://ngames-server-production.up.railway.app/assets/cuunsurf-banner.png',
+    'blacks-dungeon': 'https://ngames-server-production.up.railway.app/assets/blacks-dungeon-banner.png',
+    'chaos-casino':   'https://ngames-server-production.up.railway.app/assets/chaos-holdem-banner.png',
+    'chaos-holdem':   'https://ngames-server-production.up.railway.app/assets/chaos-holdem-banner.png',
     'nkart':                 'https://ngames-server-production.up.railway.app/assets/nkart-banner.png',
     'interrogating-blacks':  'https://ngames-server-production.up.railway.app/assets/ib-banner.jpg',
   };
@@ -4921,4 +4921,1264 @@ const RECORD_META = {
   'cuunsurf':       { name:'CuunSurf',        emoji:'\uD83C\uDFC4' },
   'chaos-casino':   { name:'Chaos Casino',    emoji:'\uD83C\uDCCF' },
   'nkart':          { name:'N Kart',           emoji:'\uD83C\uDFCE\uFE0F' },
-  'interrogating-blacks': { name:'Interrogating Blacks', emoji:'\uD83C\uDF99\uFE0F' },
+  'interrogating-blacks': { name:'Interrogating Blacks', emoji:'🎙️' },
+};
+
+function renderRecords(data, el) {
+  // Always show all 5 games, even with no records yet
+  const allGames = ['project-x', 'blacks-dungeon', 'chaos-casino', 'case-sim', 'cuunsurf', 'nkart', 'interrogating-blacks'];
+  const merged   = { ...Object.fromEntries(allGames.map(g => [g, {}])), ...data };
+  let html = '';
+  for (const [gid, r] of Object.entries(merged)) {
+    const meta = RECORD_META[gid] || { name: gameName(gid), emoji:'\uD83C\uDFC6' };
+    const rows = [];
+    if (r.best_score) {
+      const crew = CREW.find(c => c.id === r.best_score.profile_id);
+      rows.push(`<div class="record-row">
+        <div class="rr-icon">\uD83C\uDFC6</div>
+        <div class="rr-label">Best Score</div>
+        <div class="rr-val">${r.best_score.score.toLocaleString()}</div>
+        <div class="rr-holder" style="color:${crew?.color||'var(--acc)'}">${r.best_score.name||r.best_score.profile_id}</div>
+        ${r.best_score.mode ? `<div class="rr-mode">${r.best_score.mode}</div>` : ''}
+      </div>`);
+    }
+    if (r.most_kills) {
+      const crew = CREW.find(c => c.id === r.most_kills.profile_id);
+      rows.push(`<div class="record-row">
+        <div class="rr-icon">\u26A1</div>
+        <div class="rr-label">Most Kills</div>
+        <div class="rr-val">${r.most_kills.value}</div>
+        <div class="rr-holder" style="color:${crew?.color||'var(--acc)'}">${r.most_kills.name||r.most_kills.profile_id}</div>
+        ${r.most_kills.mode ? `<div class="rr-mode">${r.most_kills.mode}</div>` : ''}
+      </div>`);
+    }
+    if (r.fastest_run) {
+      const crew = CREW.find(c => c.id === r.fastest_run.profile_id);
+      const t    = r.fastest_run.value;
+      const tStr = t < 60 ? t.toFixed(1) + 's' : Math.floor(t/60) + 'm ' + (t%60).toFixed(0) + 's';
+      rows.push(`<div class="record-row">
+        <div class="rr-icon">\u23F1\uFE0F</div>
+        <div class="rr-label">Fastest Run</div>
+        <div class="rr-val">${tStr}</div>
+        <div class="rr-holder" style="color:${crew?.color||'var(--acc)'}">${r.fastest_run.name||r.fastest_run.profile_id}</div>
+      </div>`);
+    }
+    if (r.longest_streak) {
+      const crew = CREW.find(c => c.id === r.longest_streak.profile_id);
+      rows.push(`<div class="record-row">
+        <div class="rr-icon">\uD83D\uDD25</div>
+        <div class="rr-label">Longest Streak</div>
+        <div class="rr-val">${r.longest_streak.value}</div>
+        <div class="rr-holder" style="color:${crew?.color||'var(--acc)'}">${r.longest_streak.name||r.longest_streak.profile_id}</div>
+      </div>`);
+    }
+    if (!rows.length) {
+      rows.push('<div class="record-row"><div style="color:var(--text4);font-size:12px;padding:4px 0">No records yet</div></div>');
+    }
+    html += `<div class="record-card">
+      <div class="record-card-header">
+        <div class="rch-icon">${meta.emoji}</div>
+        <div class="rch-name">${meta.name}</div>
+      </div>
+      ${rows.join('')}
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+async function loadSeasonLB() {
+  const el = document.getElementById('season-content');
+  if (!el) return;
+  el.innerHTML = '<div class="lb-empty">Loading...</div>';
+  try {
+    const [current, history] = await Promise.all([
+      fetch(`${SERVER}/seasons/current`).then(async r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${SERVER}/seasons/history`).then(async r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+    ]);
+    renderSeasonLB(current, history, el);
+  } catch(e) {
+    el.innerHTML = '<div class="lb-empty">Failed to load season</div>';
+  }
+}
+
+function renderSeasonLB(current, history, el) {
+  let html = '';
+  if (current) {
+    const daysLeft = current.days_remaining || 0;
+    const maxNP    = current.leaderboard[0]?.np_earned || 1;
+    html += `<div class="season-header">
+      <div style="font-size:22px">\uD83C\uDFC6</div>
+      <div>
+        <div class="season-name">${current.name}</div>
+        <div class="season-timer">${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining</div>
+      </div>
+    </div>`;
+    html += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:20px">';
+    // Merge server LB with all crew (show 0 NP for crew not yet on the board)
+    const lbMap = Object.fromEntries((current.leaderboard || []).map(r => [r.profile_id, r]));
+    const fullLb = CREW.map(c => lbMap[c.id] || { profile_id: c.id, np_earned: 0, name: c.name, color: c.color, initial: c.initial });
+    fullLb.sort((a, b) => b.np_earned - a.np_earned);
+    for (const [i, row] of fullLb.entries()) {
+      const crew = CREW.find(c => c.id === row.profile_id);
+      const pct  = maxNP > 0 ? Math.round(row.np_earned / maxNP * 100) : 0;
+      html += `<div class="season-lb-row">
+        <div style="width:22px;font-size:12px;font-weight:700;color:${i===0?'#f0c040':'var(--text3)'}">${i+1}</div>
+        <div style="width:26px;height:26px;border-radius:50%;background:${crew?.color||'#fff'}22;color:${crew?.color||'#fff'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${crew?.initial||'?'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;margin-bottom:3px">${row.name||row.profile_id}</div>
+          <div class="season-lb-bar-wrap"><div class="season-lb-bar" style="width:${pct}%;background:${crew?.color||'var(--acc)'}"></div></div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:${crew?.color||'var(--acc)'}">${row.np_earned.toLocaleString()} NP</div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  if (history?.length) {
+    html += '<div class="ach-section-label">Past Seasons</div>';
+    for (const s of history) {
+      const crew = s.winner ? CREW.find(c => c.id === s.winner.id) : null;
+      html += `<div class="season-history-card">
+        <div style="font-size:16px">\uD83C\uDFC6</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700">${s.name}</div>
+          ${s.winner ? `<div style="font-size:11px;color:${crew?.color||'var(--text2)'}">Winner: ${s.winner.name}</div>` : '<div style="font-size:11px;color:var(--text4)">No winner</div>'}
+        </div>
+      </div>`;
+    }
+  }
+  el.innerHTML = html || '<div class="lb-empty">No season data yet</div>';
+}
+
+// ─── Stats tab ────────────────────────────────────────────────────────────────
+
+let _statsProfileId = null;
+
+async function renderStats() {
+  const container = document.getElementById('stats-content');
+  if (!container) return;
+  if (!_statsProfileId) _statsProfileId = currentProfile?.id;
+
+  const selectorHTML = CREW.map(crew =>
+    `<button class="ach-crew-btn ${_statsProfileId === crew.id ? 'active' : ''}"
+      style="--btn-color:${crew.color}"
+      onclick="selectStatsProfile('${crew.id}')">
+      <div style="width:18px;height:18px;border-radius:50%;background:${crew.color}22;color:${crew.color};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">${crew.initial}</div>
+      ${crew.name}
+    </button>`
+  ).join('');
+
+  container.innerHTML = `
+    <div class="stats-crew-selector">${selectorHTML}</div>
+    <div id="stats-inner"><div style="color:var(--text3);padding:20px 0">Loading...</div></div>`;
+
+  await loadStats(_statsProfileId);
+}
+
+async function selectStatsProfile(id) {
+  _statsProfileId = id;
+  renderStats();
+}
+
+async function loadStats(profileId) {
+  const inner = document.getElementById('stats-inner');
+  if (!inner) return;
+  try {
+    const data = await fetch(`${SERVER}/stats/${profileId}`).then(r => r.json());
+    renderStatsInner(data, inner, profileId);
+  } catch(e) {
+    inner.innerHTML = '<div style="color:var(--text3);font-size:12px">Failed to load stats</div>';
+  }
+}
+
+function renderStatsInner(data, el, profileId) {
+  const crew = CREW.find(c => c.id === profileId);
+  const color = crew?.color || 'var(--acc)';
+
+  const overviewCards = [
+    { sv: data.total_sessions.toLocaleString(), sl: 'Sessions Played' },
+    { sv: data.total_wins.toLocaleString(),     sl: 'Total Wins' },
+    { sv: data.total_np.toLocaleString(),        sl: 'Total NP' },
+    { sv: 'Lv ' + data.level,                   sl: data.title },
+  ];
+
+  let html = `<div class="stats-overview-grid">`;
+  for (const c of overviewCards) {
+    html += `<div class="stats-card"><div class="sv" style="color:${color}">${c.sv}</div><div class="sl">${c.sl}</div></div>`;
+  }
+  html += '</div>';
+
+  const gameEntries = Object.entries(data.by_game || {});
+  if (gameEntries.length) {
+    html += '<div class="stats-section-label">By Game</div>';
+    for (const [gid, g] of gameEntries) {
+      const winRateClass = g.win_rate >= 50 ? 'accent' : '';
+      html += `<div class="stats-game-row">
+        <div class="sgn">${gameName(gid)}</div>
+        <div class="stats-game-pills">
+          <span class="stats-pill">${g.sessions} sessions</span>
+          <span class="stats-pill ${winRateClass}">${g.win_rate}% WR</span>
+          <span class="stats-pill">Best: ${g.best_score.toLocaleString()}</span>
+          ${g.favorite_mode ? `<span class="stats-pill">${g.favorite_mode}</span>` : ''}
+        </div>
+      </div>`;
+    }
+  } else {
+    html += '<div style="color:var(--text3);font-size:12px;padding:20px 0">No sessions yet</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ─── Challenges tab ───────────────────────────────────────────────────────────
+
+async function renderChallenges() {
+  const container = document.getElementById('challenges-content');
+  if (!container) return;
+  container.innerHTML = '<div style="color:var(--text3);padding:20px 0">Loading...</div>';
+
+  try {
+    const [active, progress] = await Promise.all([
+      fetch(`${SERVER}/challenges/active`).then(async r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${SERVER}/challenges/progress/${currentProfile?.id}`).then(async r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+    ]);
+    renderChallengesInner(active, progress, container);
+  } catch(e) {
+    container.innerHTML = '<div style="color:var(--text3);padding:20px 0">Failed to load challenges</div>';
+  }
+}
+
+function renderChallengesInner(active, progress, el) {
+  let html = '';
+
+  for (const type of ['daily','weekly']) {
+    const chal = active[type];
+    if (!chal) continue;
+    const prog = progress[type];
+    const myProg  = prog?.my_progress || 0;
+    const done    = myProg >= chal.goal;
+    const pct     = Math.min(100, Math.round(myProg / chal.goal * 100));
+    const expires = chal.expires_in || 0;
+    const expStr  = type === 'daily'
+      ? formatCountdown(expires)
+      : Math.ceil(expires / 86400) + ' day' + (Math.ceil(expires / 86400) !== 1 ? 's' : '') + ' left';
+
+    const crewBars = CREW.map(c => {
+      const cp    = prog?.crew_progress?.find(r => r.profile_id === c.id);
+      const cpPct = cp ? Math.min(100, Math.round(cp.progress / chal.goal * 100)) : 0;
+      return `<div class="chal-crew-bar">
+        <div class="ccb-name">${c.initial}</div>
+        <div class="ccb-track">
+          <div class="ccb-fill ${cp?.completed ? 'done' : ''}" style="width:${cpPct}%;background:${c.color}"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    html += `<div class="chal-card ${done ? 'completed' : ''}" id="chal-${type}">
+      <div class="chal-header">
+        <div>
+          <div class="chal-title">${chal.title}</div>
+          <div class="chal-desc">${chal.description}</div>
+        </div>
+        <span class="chal-badge ${type}">${type.toUpperCase()}</span>
+      </div>
+      <div class="chal-progress-bar">
+        <div class="chal-progress-fill ${done ? 'done' : ''}" style="width:${pct}%"></div>
+      </div>
+      <div class="chal-meta">
+        <span class="chal-timer">${done ? 'Completed!' : myProg + ' / ' + chal.goal + ' — ' + expStr}</span>
+        <span class="chal-np">+${chal.np_reward} NP</span>
+      </div>
+      <div class="chal-crew-bars">${crewBars}</div>
+    </div>`;
+  }
+
+  el.innerHTML = html || '<div style="color:var(--text3);padding:20px 0">No active challenges</div>';
+}
+
+function formatCountdown(secs) {
+  if (secs <= 0) return 'Expired';
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
+}
+
+// ─── Bets ─────────────────────────────────────────────────────────────────────
+
+let _betsVisible = true;
+
+async function loadBets() {
+  const listEl = document.getElementById('bets-list');
+  if (!listEl) return;
+  try {
+    const bets = await fetch(`${SERVER}/bets/open`).then(r => r.json());
+    if (!bets.length) {
+      listEl.innerHTML = '<div style="color:var(--text4);font-size:11px;padding:4px 0">No open bets</div>';
+      return;
+    }
+    listEl.innerHTML = bets.map(b => `
+      <div class="bet-card">
+        <div class="bc-text">
+          <span style="color:${CREW.find(c=>c.id===b.bettor_id)?.color||'var(--text2)'};font-weight:700">${b.bettor_name}</span>
+          bet on
+          <span style="color:${CREW.find(c=>c.id===b.target_id)?.color||'var(--text2)'};font-weight:700">${b.target_name}</span>
+          in ${gameName(b.game_id)}
+        </div>
+        <div class="bc-wager">${b.np_wager} NP</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+function toggleBetsPanel() {
+  _betsVisible = !_betsVisible;
+  const panel = document.getElementById('bets-panel');
+  const listEl = document.getElementById('bets-list');
+  if (panel) {
+    if (_betsVisible) { listEl.classList.remove('hidden'); loadBets(); }
+    else              { listEl.classList.add('hidden'); }
+  }
+}
+
+async function placeBet(target_id, game_id) {
+  if (!currentProfile) return;
+  const np_wager = parseInt(prompt('How many NP to wager? (max 500)') || '0');
+  if (!np_wager || np_wager < 1 || np_wager > 500) return;
+  try {
+    const r = await fetch(`${SERVER}/bets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bettor_id: currentProfile.id, target_id, game_id, np_wager }),
+    }).then(r => r.json());
+    if (r.ok) {
+      showToast({ title: 'Bet placed!', sub: `${np_wager} NP on ${CREW.find(c=>c.id===target_id)?.name||target_id}`, icon: '\uD83C\uDFB2', duration: 3000 });
+      loadBets();
+    } else {
+      showToast({ title: 'Bet failed', sub: r.error || 'Unknown error', icon: '\u274C', duration: 3000 });
+    }
+  } catch(e) {}
+}
+
+// ─── Wall comments ────────────────────────────────────────────────────────────
+
+async function toggleComments(btn, postId) {
+  const thread = document.getElementById('comments-' + postId);
+  if (!thread) return;
+  if (thread.classList.contains('hidden')) {
+    thread.classList.remove('hidden');
+    btn.textContent = '\uD83D\uDCAC Hide';
+    if (!thread.dataset.loaded) {
+      thread.dataset.loaded = '1';
+      await loadComments(postId, thread);
+    }
+  } else {
+    thread.classList.add('hidden');
+    const count = thread.querySelectorAll('.comment-row').length;
+    btn.textContent = '\uD83D\uDCAC ' + (count > 0 ? count + ' comment' + (count !== 1 ? 's' : '') : 'Comment');
+  }
+}
+
+async function loadComments(postId, thread) {
+  thread.innerHTML = '<div style="color:var(--text3);font-size:11px;padding:4px 0">Loading...</div>';
+  try {
+    const comments = await fetch(`${SERVER}/wall/${postId}/comments`).then(r => r.json());
+    renderComments(comments, thread, postId);
+  } catch(e) {
+    thread.innerHTML = '<div style="color:var(--text4);font-size:11px">Failed to load</div>';
+  }
+}
+
+function renderComments(comments, thread, postId) {
+  const rows = comments.map(c => `
+    <div class="comment-row">
+      <div class="comment-av" style="background:${c.color}22;color:${c.color}">${c.initial}</div>
+      <div class="comment-body">
+        <div class="comment-author" style="color:${c.color}">${c.name}</div>
+        <div class="comment-text">${escHtml(c.content)}</div>
+        <div class="comment-time">${timeAgo(c.created_at)}</div>
+      </div>
+    </div>`).join('');
+
+  thread.innerHTML = rows + `
+    <div class="comment-input-row">
+      <input class="comment-input" id="ci-${postId}" placeholder="Add a comment..." maxlength="200"
+        onkeydown="if(event.key==='Enter')submitComment(${postId})">
+      <button class="comment-send-btn" onclick="submitComment(${postId})">&#8593;</button>
+    </div>`;
+}
+
+async function submitComment(postId) {
+  if (!currentProfile) return;
+  const input = document.getElementById('ci-' + postId);
+  if (!input || !input.value.trim()) return;
+  const content = input.value.trim();
+  input.value = '';
+  try {
+    await fetch(`${SERVER}/wall/${postId}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile_id: currentProfile.id, content }),
+    });
+    const thread = document.getElementById('comments-' + postId);
+    if (thread) await loadComments(postId, thread);
+  } catch(e) {}
+}
+
+function onWallComment(msg) {
+  // If we have the thread open, refresh it
+  const thread = document.getElementById('comments-' + msg.post_id);
+  if (thread && !thread.classList.contains('hidden')) {
+    loadComments(msg.post_id, thread);
+  }
+  // Update comment count on toggle button
+  const postEl = document.querySelector(`[data-post-id="${msg.post_id}"]`);
+  if (postEl) {
+    const btn = postEl.querySelector('.post-comment-toggle');
+    if (btn && !btn.textContent.includes('Hide')) {
+      const countMatch = btn.textContent.match(/\d+/);
+      const count = countMatch ? parseInt(countMatch[0]) + 1 : 1;
+      btn.textContent = '\uD83D\uDCAC ' + count + ' comment' + (count !== 1 ? 's' : '');
+    }
+  }
+}
+
+// ─── Titles ───────────────────────────────────────────────────────────────────
+
+let _equippedTitle  = null;
+let _titlesCache    = {};
+
+async function loadTitles(profileId) {
+  try {
+    const data = await fetch(`${SERVER}/titles/${profileId}`).then(r => r.json());
+    _titlesCache[profileId] = data;
+    if (profileId === currentProfile?.id) {
+      _equippedTitle = data.find(t => t.equipped) || null;
+      updateBottomBar();
+    }
+    return data;
+  } catch(e) { return []; }
+}
+
+async function equipTitle(title_id) {
+  if (!currentProfile) return;
+  try {
+    await fetch(`${SERVER}/titles/equip`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile_id: currentProfile.id, title_id }),
+    });
+    await loadTitles(currentProfile.id);
+    updateBottomBar();
+    // Re-render if on achievements tab
+    const achCache = _titlesCache[currentProfile.id];
+    if (achCache) {
+      delete _titlesCache[currentProfile.id];
+    }
+    renderAchievements();
+  } catch(e) {}
+}
+
+function onTitleUnlocked(msg) {
+  if (!msg.profile_id) return;
+  const crew = CREW.find(c => c.id === msg.profile_id);
+  showToast({
+    title:    'New Title Unlocked: ' + msg.title_text,
+    sub:      crew ? crew.name + ' earned a new title' : 'New title available',
+    icon:     '\uD83D\uDC51',
+    color:    msg.color || 'var(--acc)',
+    duration: 5000,
+    onClick:  () => switchTab('achievements'),
+  });
+  if (msg.profile_id === currentProfile?.id) {
+    delete _titlesCache[msg.profile_id];
+    loadTitles(msg.profile_id);
+  }
+}
+
+function onTitleEquipped(msg) {
+  if (msg.profile_id === currentProfile?.id) {
+    _equippedTitle = msg.title_id ? { title_id: msg.title_id, title_text: msg.title_text, color: msg.color } : null;
+    updateBottomBar();
+  }
+}
+
+// ─── Achievement tab titles section ──────────────────────────────────────────
+
+async function renderTitlesSection(profileId, container) {
+  const titles = _titlesCache[profileId] || await loadTitles(profileId);
+  if (!titles.length) return;
+
+  let html = '<div class="ach-section-label">Titles</div><div class="titles-grid">';
+  for (const t of titles) {
+    const isEquipped = profileId === currentProfile?.id && t.equipped;
+    const canEquip   = profileId === currentProfile?.id;
+    html += `<div class="title-card ${isEquipped ? 'equipped' : ''}" style="border-color:${t.color}33">
+      <div class="tc-name" style="color:${t.color}">${t.title_text}</div>
+      <div class="tc-meta">${t.game_id ? gameName(t.game_id) : 'Global'}</div>
+      ${canEquip ? `<button class="tc-equip-btn" onclick="equipTitle('${t.title_id}')">${isEquipped ? 'Equipped' : 'Equip'}</button>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+  container.insertAdjacentHTML('afterbegin', html);
+}
+
+// ─── WS events: challenges, seasons, bets ────────────────────────────────────
+
+function onChallengeComplete(msg) {
+  if (!msg.profile_id) return;
+  const crew = CREW.find(c => c.id === msg.profile_id);
+  showToast({
+    title:    (msg.challenge_type === 'daily' ? 'Daily' : 'Weekly') + ' Challenge Complete!',
+    sub:      msg.title + ' — +' + msg.np_reward + ' NP',
+    color:    crew?.color || 'var(--acc)',
+    initial:  crew?.initial,
+    icon:     msg.challenge_type === 'daily' ? '\u2B50' : '\uD83C\uDF1F',
+    duration: 5000,
+  });
+  const card = document.getElementById('chal-' + msg.challenge_type);
+  if (card) {
+    card.classList.add('just-completed');
+    card.classList.add('completed');
+    setTimeout(() => card.classList.remove('just-completed'), 5000);
+  }
+  if (msg.profile_id === currentProfile?.id) {
+    fetch(`${SERVER}/profiles/${currentProfile.id}`).then(r => r.json()).then(p => {
+      if (p?.id) { profiles[p.id] = p; updateBottomBar(); }
+    }).catch(() => {});
+  }
+}
+
+function onSeasonEnd(msg) {
+  const winner = msg.winner_id ? CREW.find(c => c.id === msg.winner_id) : null;
+  showToast({
+    title:    'Season Ended!',
+    sub:      winner ? 'Winner: ' + msg.winner_name : 'Season over',
+    icon:     '\uD83C\uDFC6',
+    color:    winner?.color || '#f0c040',
+    duration: 8000,
+    onClick:  () => { setLbMainView('season'); switchTab('leaderboard'); },
+  });
+}
+
+function onBetPlaced(msg) {
+  if (!document.getElementById('tab-wall')?.classList.contains('active')) return;
+  loadBets();
+}
+
+function onBetResolved(msg) {
+  const myBet = msg.bettor_id === currentProfile?.id;
+  if (!myBet) return;
+  const targetName = CREW.find(c => c.id === msg.target_id)?.name || msg.target_id;
+  if (msg.won) {
+    showToast({
+      title: 'Bet won!',
+      sub: `Your bet on ${targetName} paid off! +${msg.np_change} NP`,
+      icon: '\uD83D\uDCB0',
+      color: '#3ddc84',
+      duration: 5000,
+    });
+  } else {
+    showToast({
+      title: 'Bet lost',
+      sub: `${targetName} lost. -${Math.abs(msg.np_change)} NP`,
+      icon: '\uD83D\uDCB8',
+      color: '#e04040',
+      duration: 4000,
+    });
+  }
+  // Refresh NP
+  fetch(`${SERVER}/profiles/${currentProfile.id}`).then(r => r.json()).then(p => {
+    if (p?.id) { profiles[p.id] = p; updateBottomBar(); }
+  }).catch(() => {});
+  loadBets();
+}
+
+function onBetExpired(msg) {
+  if (msg.bettor_id !== currentProfile?.id) return;
+  showToast({ title: 'Bet expired', sub: 'Refunded ' + msg.refund + ' NP', icon: '\u23F0', duration: 3000 });
+  loadBets();
+}
+
+
+function toggleLbDetail(el, row) {
+  // Remove any existing detail
+  const existing = el.nextElementSibling;
+  if (existing?.classList.contains('lb-detail')) {
+    existing.remove();
+    el.classList.remove('expanded');
+    return;
+  }
+  // Close any other open details
+  document.querySelectorAll('.lb-detail').forEach(d => d.remove());
+  document.querySelectorAll('.lb-row.expanded').forEach(r => r.classList.remove('expanded'));
+
+  el.classList.add('expanded');
+
+  const detail = document.createElement('div');
+  detail.className = 'lb-detail';
+
+  const pills = [];
+  if (row.score   != null) pills.push({ label: `${Number(row.score).toLocaleString()} pts`,   cls: 'highlight' });
+  if (row.chips   != null) pills.push({ label: `$${Number(row.chips).toLocaleString()} chips`, cls: 'gold' });
+  if (row.hands   != null) pills.push({ label: `${row.hands} hands`,    cls: '' });
+  if (row.wins    != null) pills.push({ label: `${row.wins} wins`,      cls: '' });
+  if (row.bosses  != null) pills.push({ label: `${row.bosses} bosses`,  cls: '' });
+  if (row.hardcore)         pills.push({ label: 'Hardcore',             cls: 'red' });
+  if (row.outcome === 'win') pills.push({ label: 'Won',                 cls: 'highlight' });
+  else if (row.outcome)     pills.push({ label: 'Bust',                 cls: '' });
+  if (row.curse   != null && row.curse > 0) pills.push({ label: `Curse ${row.curse}`, cls: 'red' });
+  if (row.luck    != null && row.luck  > 0) pills.push({ label: `Luck ${row.luck}`,   cls: 'gold' });
+  if (row.final_mod)        pills.push({ label: row.final_mod,          cls: '' });
+  if (row.created_at)       pills.push({ label: timeAgo(row.created_at), cls: '' });
+
+  detail.innerHTML = pills.map(p =>
+    `<span class="lb-stat-pill ${p.cls}">${p.label}</span>`
+  ).join('');
+
+  el.insertAdjacentElement('afterend', detail);
+}
+
+// ─── Toast Notifications ─────────────────────────────────────────────────────
+
+function showToast({ title, sub, color, initial, icon, onClick, duration = 4000 }) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+
+  const leftEl = initial
+    ? `<div class="toast-av" style="background:${color}22;color:${color}">${initial}</div>`
+    : `<div class="toast-icon">${icon || '🔔'}</div>`;
+
+  const dot = color
+    ? `<div class="toast-dot" style="background:${color}"></div>`
+    : '';
+
+  toast.innerHTML = `
+    ${leftEl}
+    <div class="toast-body">
+      <div class="toast-title">${title}</div>
+      ${sub ? `<div class="toast-sub">${sub}</div>` : ''}
+    </div>
+    ${dot}
+  `;
+
+  if (onClick) toast.onclick = () => { dismissToast(toast); onClick(); };
+  else toast.onclick = () => dismissToast(toast);
+
+  container.appendChild(toast);
+
+  // Auto dismiss
+  const timer = setTimeout(() => dismissToast(toast), duration);
+  toast._timer = timer;
+
+  // Max 4 toasts visible
+  const toasts = container.querySelectorAll('.toast');
+  if (toasts.length > 4) dismissToast(toasts[0]);
+}
+
+function dismissToast(toast) {
+  if (!toast || toast._dismissed) return;
+  toast._dismissed = true;
+  clearTimeout(toast._timer);
+  toast.classList.add('out');
+  setTimeout(() => toast.remove(), 200);
+}
+
+// ─── Achievements ──────────────────────────────────────────────────────────────
+
+let _achProfileId  = null;  // which crew member we're viewing
+let _achCache      = {};    // profile_id → achievements array
+let _achDefs       = null;  // all achievement definitions
+
+async function renderAchievements() {
+  const container = document.getElementById('ach-content');
+  if (!container) return;
+
+  // Default to current profile
+  if (!_achProfileId) _achProfileId = currentProfile?.id;
+
+  // Crew selector
+  const selectorHTML = CREW.map(crew =>
+    `<button class="ach-crew-btn ${_achProfileId === crew.id ? 'active' : ''}"
+      style="--btn-color:${crew.color}"
+      onclick="selectAchProfile('${crew.id}')">
+      <div style="width:18px;height:18px;border-radius:50%;background:${crew.color}22;color:${crew.color};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">${crew.initial}</div>
+      ${crew.name}
+    </button>`
+  ).join('');
+
+  container.innerHTML = `
+    <div class="ach-crew-selector">${selectorHTML}</div>
+    <div id="ach-grid-container">
+      <div style="color:var(--text3);font-size:12px;padding:20px 0">Loading achievements...</div>
+    </div>
+    <div id="titles-section"></div>`;
+
+  await loadAchievements(_achProfileId);
+  if (_achProfileId === currentProfile?.id) renderTitlesSection();
+}
+
+async function selectAchProfile(profileId) {
+  _achProfileId = profileId;
+  renderAchievements();
+}
+
+async function loadAchievements(profileId) {
+  const gridContainer = document.getElementById('ach-grid-container');
+  if (!gridContainer) return;
+
+  try {
+    // Fetch with cache
+    if (!_achCache[profileId]) {
+      const data = await fetch(`${SERVER}/achievements/${profileId}`).then(r => r.json());
+      _achCache[profileId] = data;
+    }
+    const achievements = _achCache[profileId];
+    renderAchievementGrid(achievements, gridContainer, profileId);
+  } catch(e) {
+    if (gridContainer) gridContainer.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:20px 0">Failed to load achievements</div>';
+  }
+}
+
+function renderAchievementGrid(achievements, container, profileId) {
+  if (!achievements?.length) {
+    container.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:20px 0">No achievements yet</div>';
+    return;
+  }
+
+  // Group: ngames first, then chaos-casino by game_mode, then others
+  const byGame = {};
+  for (const a of achievements) {
+    const key = (a.game_id === 'chaos-casino' || a.game_id === 'chaos-holdem')
+      ? 'chaos-casino::' + (a.game_mode || 'poker')
+      : a.game_id;
+    if (!byGame[key]) byGame[key] = [];
+    byGame[key].push(a);
+  }
+
+  // Sort groups: ngames first, then by mode order
+  const MODE_ORDER = ['poker','blackjack','slots','crash','roulette'];
+  const sortedKeys = Object.keys(byGame).sort((a, b) => {
+    if (a === 'ngames') return -1;
+    if (b === 'ngames') return 1;
+    const mA = a.split('::')[1] || '';
+    const mB = b.split('::')[1] || '';
+    return MODE_ORDER.indexOf(mA) - MODE_ORDER.indexOf(mB);
+  });
+
+  const crew = CREW.find(c => c.id === profileId);
+  const accentColor = crew?.color || 'var(--acc)';
+
+  const MODE_DISPLAY = { poker:"HOLD'EM", blackjack:'BLACKJACK', slots:'SLOTS', crash:'CRASH', roulette:'ROULETTE' };
+
+  let html = '';
+  for (const key of sortedKeys) {
+    const achs = byGame[key];
+    const [gid, mode] = key.split('::');
+    const label = mode ? `Chaos Casino — ${MODE_DISPLAY[mode] || mode}` : gameName(gid);
+    const unlocked = achs.filter(a => a.unlocked).length;
+    html += `<div class="ach-section-label">${label} — ${unlocked}/${achs.length}</div>`;
+    html += '<div class="ach-grid">';
+    // Sort: unlocked first, then by progress desc
+    const sorted = [...achs].sort((a, b) => {
+      if (b.unlocked !== a.unlocked) return b.unlocked - a.unlocked;
+      const pctA = a.goal > 0 ? a.progress / a.goal : 0;
+      const pctB = b.goal > 0 ? b.progress / b.goal : 0;
+      return pctB - pctA;
+    });
+    for (const a of sorted) {
+      const pct     = a.goal > 0 ? Math.min(100, Math.round((a.progress / a.goal) * 100)) : 0;
+      const isUnlocked = a.unlocked === 1;
+      const isProgress = a.type === 'progress';
+      html += `<div class="ach-card ${isUnlocked ? 'unlocked' : ''}">
+        <div class="ach-card-header">
+          <div class="ach-icon">${a.icon || '🏆'}</div>
+          <div>
+            <div class="ach-name" style="${isUnlocked ? `color:${accentColor}` : ''}">${a.name}</div>
+            <div class="ach-desc">${a.description}</div>
+          </div>
+        </div>
+        ${isProgress ? `
+          <div class="ach-progress-bar">
+            <div class="ach-progress-fill" style="width:${pct}%;background:${isUnlocked ? accentColor : 'var(--border-h)'}"></div>
+          </div>` : ''}
+        <div class="ach-footer">
+          ${isProgress
+            ? `<span class="ach-progress-label">${a.progress.toLocaleString()} / ${a.goal.toLocaleString()}</span>`
+            : `<span class="ach-lock">${isUnlocked ? '' : 'Locked'}</span>`}
+          <span class="ach-xp" style="${isUnlocked ? 'color:var(--text3)' : ''}">+${(a.xp_reward || a.np_reward || 0)} NP</span>
+          ${isUnlocked ? `<span class="ach-unlocked-at">${a.unlocked_at ? timeAgo(a.unlocked_at) : 'Unlocked'}</span>` : ''}
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+// Invalidate achievement cache when an unlock event comes in
+function onCrashRun(msg) {
+  if (!msg || !msg.player) return;
+  const crew = CREW.find(c => c.id === msg.profile_id);
+  if (!crew) return;
+  const result = msg.win ? `Cashed out at ${msg.mult}x` : `Busted at ${msg.mult}x`;
+  showToast({
+    title:   `${crew.name} — Crash`,
+    sub:     result,
+    color:   msg.win ? '#3ddc84' : '#e04040',
+    initial: crew.initial,
+    duration: 3500,
+  });
+}
+
+function onAchievementUnlock(msg) {
+  if (!msg.profile_id) return;
+
+  // Always bust cache for this profile
+  delete _achCache[msg.profile_id];
+
+  const crew = CREW.find(c => c.id === msg.profile_id);
+  const ach  = msg.achievement;
+
+  // Show toast for any crew member (including yourself)
+  if (crew && ach) {
+    const isSecret = ach.name === '???' || ach.description === '???';
+    showToast({
+      title:    `${crew.name} — ${isSecret ? '???' : ach.name}`,
+      sub:      isSecret ? 'Secret achievement unlocked' : ach.description,
+      color:    crew.color,
+      initial:  crew.initial,
+      duration: 5000,
+      onClick:  () => { _achProfileId = msg.profile_id; switchTab('achievements'); },
+    });
+
+    // Desktop notification for own unlocks
+    if (msg.profile_id === currentProfile?.id) {
+      sendDesktopNotification(
+        isSecret ? 'Secret Achievement Unlocked!' : `Achievement: ${ach.name}`,
+        isSecret ? '???' : ach.description
+      );
+    }
+  }
+
+  // Re-fetch profile to get updated NP/level
+  fetch(`${SERVER}/profiles/${msg.profile_id}`)
+    .then(r => r.json())
+    .then(prof => {
+      if (prof && prof.id) {
+        profiles[prof.id] = prof;
+        if (prof.id === currentProfile?.id) {
+          updateBottomBar();
+          checkLevelAchievements();
+        }
+        renderCrew();
+      }
+    }).catch(() => {});
+
+  // Re-render achievements tab if open and viewing this profile
+  if (_achProfileId === msg.profile_id &&
+      document.getElementById('tab-achievements').classList.contains('active')) {
+    loadAchievements(msg.profile_id);
+  }
+}
+function updateBottomBar() {
+  const prof = profiles[currentProfile?.id];
+  if (!prof) return;
+  const npEl  = document.getElementById('bottom-np');
+  const lvEl  = document.getElementById('bottom-level');
+  if (npEl) npEl.textContent  = (prof.np || 0).toLocaleString() + ' NP';
+  const titleEl = document.getElementById('bottom-title');
+  // Show equipped custom title if any, otherwise level title
+  const equippedTitle = _equippedTitle;
+  if (titleEl) {
+    if (equippedTitle) {
+      titleEl.innerHTML = `<span class="title-badge" style="color:${equippedTitle.color};border-color:${equippedTitle.color}44;background:${equippedTitle.color}11" onclick="switchTab('achievements')">${equippedTitle.title_text}</span>`;
+    } else {
+      titleEl.textContent = getLevelTitle(prof.level || 1);
+    }
+  }
+  if (lvEl) lvEl.textContent  = 'Lv ' + (prof.level || 1);
+  const pcLevel = document.getElementById('pc-level');
+  if (pcLevel) pcLevel.textContent = `Level ${prof.level || 1} · ${(prof.np || 0).toLocaleString()} NP`;
+}
+
+
+// ─── NP / Level System ───────────────────────────────────────────────────────
+const NP_TABLE = (() => {
+  const t = [0, 0];
+  for (let lvl = 2; lvl <= 50; lvl++) {
+    if (lvl <= 25) t.push(Math.floor(300 * Math.pow(lvl-1, 1.9)));
+    else           t.push(t[25] + Math.floor(5000 * Math.pow(lvl-25, 2.1)));
+  }
+  return t;
+})();
+
+const LEVEL_TITLES = [
+  '', 'Newcomer','Newcomer','Newcomer','Newcomer',
+  'Douglass','Douglass','Douglass','Douglass','Douglass',
+  'Hughes','Hughes','Hughes','Hughes','Hughes',
+  'Ali','Ali','Ali','Ali','Ali',
+  'Malcolm','Malcolm','Malcolm','Malcolm','Malcolm',
+  'Coltrane','Coltrane','Coltrane','Coltrane','Coltrane',
+  'Baldwin','Baldwin','Baldwin','Baldwin','Baldwin',
+  'Tubman','Tubman','Tubman','Tubman','Tubman',
+  'King','King','King','King','King',
+  'Obama','Obama','Obama','Obama','Obama',
+  'N Master',
+];
+
+function getLevelTitle(lvl) {
+  return LEVEL_TITLES[Math.min(lvl || 1, 50)] || 'Newcomer';
+}
+
+function npForLevel(lvl) {
+  return NP_TABLE[Math.min(lvl, 50)] || 0;
+}
+
+function npProgress(np, level) {
+  const current = NP_TABLE[Math.min(level, 50)] || 0;
+  const next    = NP_TABLE[Math.min(level + 1, 50)];
+  if (!next || level >= 50) return 100;
+  return Math.min(100, Math.round((np - current) / (next - current) * 100));
+}
+
+const MODE_COLORS = { poker:'#f0c040', blackjack:'#40c0e0', slots:'#a855f7', crash:'#e04040', roulette:'#3ddc84' };
+const MODE_LABELS = { poker:"HOLD'EM", blackjack:'BLACKJACK', slots:'SLOTS', crash:'CRASH', roulette:'ROULETTE' };
+
+function modePill(game_mode) {
+  if (!game_mode || !MODE_COLORS[game_mode]) return '';
+  return `<span class="wall-mode-pill" style="background:${MODE_COLORS[game_mode]}22;color:${MODE_COLORS[game_mode]};border:1px solid ${MODE_COLORS[game_mode]}44">${MODE_LABELS[game_mode]}</span>`;
+}
+
+// ─── In-game presence polling ─────────────────────────────────────────────────
+// When a game is running, we poll every 30s to keep presence alive
+// The game itself pings its own state via NGame.ping — this is a fallback
+// to keep the launcher presence alive and show crew you're in the game
+
+let _gameStatePollInterval = null;
+let _lastGameState = null;
+
+function _startGameStatePoll(game_id) {
+  _stopGameStatePoll();
+  console.log('[GamePoll] Starting poll for', game_id);
+
+  // Poll every 15s while game is running
+  _gameStatePollInterval = setInterval(async () => {
+    if (!runningGames.has(game_id)) {
+      console.log('[GamePoll] Game no longer running, stopping poll');
+      _stopGameStatePoll();
+      return;
+    }
+
+    // 1. Send launcher presence ping to keep us online
+    try {
+      NGame.ping({
+        screen:  'in_game',
+        game:    game_id,
+        game_id: game_id,
+      });
+    } catch(e) {}
+
+    // 2. Fetch latest presence to get the game's own reported state
+    // The game pings the CHAOS server directly — we read it from the N Games server
+    // which the game also pings via NGame.ping()
+    try {
+      const presData = await fetch(`${SERVER}/presence`).then(r => r.json());
+      const myPresence = presData.find(p => p.profile_id === currentProfile?.id);
+      if (myPresence) {
+        presence[currentProfile.id] = { ...presence[currentProfile.id], ...myPresence };
+        const gs = typeof myPresence.game_state === 'string'
+          ? (() => { try { return JSON.parse(myPresence.game_state); } catch(e) { return {}; } })()
+          : (myPresence.game_state || {});
+
+        // Update sidebar to show live game state
+        if (gs && JSON.stringify(gs) !== JSON.stringify(_lastGameState)) {
+          _lastGameState = gs;
+          renderCrew();
+          refreshCardById(game_id);
+          console.log('[GamePoll] Game state updated:', gs.screen, gs.chips, gs.score);
+        }
+      }
+    } catch(e) {
+      console.warn('[GamePoll] Presence fetch failed:', e.message);
+    }
+  }, 15000);
+}
+
+function _stopGameStatePoll() {
+  if (_gameStatePollInterval) {
+    clearInterval(_gameStatePollInterval);
+    _gameStatePollInterval = null;
+    _lastGameState = null;
+    console.log('[GamePoll] Poll stopped');
+  }
+}
+
+// ─── App Config (launcher title etc.) ────────────────────────────────────────
+async function fetchAppConfig() {
+  try {
+    const cfg = await fetch(`${SERVER}/config`).then(r => r.json());
+    applyAppConfig(cfg);
+  } catch(e) {}
+}
+
+function applyAppConfig(cfg) {
+  if (cfg.launcher_title) {
+    setLauncherTitle(cfg.launcher_title);
+  }
+}
+
+function setLauncherTitle(title) {
+  const el = document.getElementById('launcher-title-el');
+  if (!el) return;
+  // Style: first word plain, rest in accent color — matches current N GAMES style
+  const parts = title.trim().split(' ');
+  if (parts.length === 1) {
+    el.innerHTML = `<span>${parts[0]}</span>`;
+  } else {
+    const first = parts[0];
+    const rest  = parts.slice(1).join(' ');
+    el.innerHTML = `${first} <span>${rest}</span>`;
+  }
+}
+
+// ─── Launcher Achievement Hooks ──────────────────────────────────────────────
+
+let _wallPostCount   = 0;
+let _radioSecs       = 0;
+let _radioAchTimer   = null;
+let _msgSent         = false;
+
+async function loadWallPostCount() {
+  if (!currentProfile) return;
+  try {
+    const posts = await fetch(`${SERVER}/wall`).then(r => r.json());
+    _wallPostCount = (posts || []).filter(p => p.profile_id === currentProfile.id).length;
+  } catch(e) {}
+}
+
+function achUnlock(id) {
+  try { NGame.unlockAchievement(id); } catch(e) {}
+}
+function achProgress(id, val) {
+  try { NGame.updateProgress(id, val); } catch(e) {}
+}
+
+// Check level-based achievements whenever NP/level updates
+function checkLevelAchievements() {
+  const prof  = profiles[currentProfile?.id];
+  if (!prof) return;
+  const level = prof.level || 1;
+  if (level >= 5)  achProgress('ng_level_5',        level);
+  if (level >= 10) achProgress('ng_level_10',        level);
+  if (level >= 20) achProgress('xg_level_20',        level);
+  if (level >= 25) achProgress('ng_title_maverick',  level);
+  if (level >= 40) achProgress('ng_title_king',      level);
+  if (level >= 50) { achProgress('ng_nmaster', level); achProgress('xg_level_50', level); }
+}
+
+// Call whenever all 4 crew are online simultaneously
+function checkFullSquad() {
+  const onlineCount = CREW.filter(cr => {
+    const p = presence[cr.id];
+    return p?.online === 1;
+  }).length;
+  if (onlineCount >= 4) achUnlock('ng_crew_online');
+}
+
+// Radio time tracking — 1hr total = ng_radio_1h (goal: 3600s)
+function startRadioAchTimer() {
+  stopRadioAchTimer();
+  _radioAchTimer = setInterval(() => {
+    _radioSecs += 10;
+    if (_radioSecs > 0) achProgress('ng_radio_1h', _radioSecs);
+    if (_radioSecs >= 3600) stopRadioAchTimer(); // done
+  }, 10000); // tick every 10s
+}
+function stopRadioAchTimer() {
+  if (_radioAchTimer) { clearInterval(_radioAchTimer); _radioAchTimer = null; }
+}
+
+// ─── Multiplayer Room Events ──────────────────────────────────────────────────
+
+function onRoomGameStart(msg) {
+  if (!msg.room) return;
+  const host = CREW.find(c => c.id === msg.room.host_id);
+  showToast({
+    title:   `${host?.name || 'Crew'} started a game`,
+    sub:     `Shape of Blacks · ${msg.room.members?.length || 0} players`,
+    color:   host?.color || 'var(--acc)',
+    initial: host?.initial || '?',
+    duration: 5000,
+  });
+}
+
+function onRoomPlayerJoined(msg) {
+  if (!msg.profile_id || msg.profile_id === currentProfile?.id) return;
+  const crew = CREW.find(c => c.id === msg.profile_id);
+  if (!crew) return;
+  showToast({
+    title:   `${crew.name} joined the room`,
+    sub:     msg.room?.id ? `Room ${msg.room.id}` : 'Multiplayer room',
+    color:   crew.color,
+    initial: crew.initial,
+    duration: 3000,
+  });
+}
+
+function onRoomPlayerLeft(msg) {
+  if (!msg.profile_id || msg.profile_id === currentProfile?.id) return;
+  const crew = CREW.find(c => c.id === msg.profile_id);
+  if (!crew) return;
+  showToast({
+    title:   `${crew.name} left the room`,
+    sub:     '',
+    color:   crew.color,
+    initial: crew.initial,
+    duration: 2500,
+  });
+}
+
+function onRoomClosed(msg) {
+  showToast({
+    title:   'Room closed',
+    sub:     msg.room_id || '',
+    color:   'var(--text3)',
+    icon:    '🚪',
+    duration: 2500,
+  });
+}
+
+// ─── Easter Egg — Konami code unlocks secret games ───────────────────────────
+const _KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let _konamiIdx = 0;
+document.addEventListener('keydown', async (e) => {
+  if (e.key === _KONAMI[_konamiIdx]) {
+    _konamiIdx++;
+    if (_konamiIdx === _KONAMI.length) {
+      _konamiIdx = 0;
+      // Unlock all secret games
+      const unlocked = ['project-x'];
+      if (window.electron) await window.electron.storeSet('secret_games_unlocked', unlocked);
+      showToast({ title: '???', sub: 'Something unlocked...', icon: '🔓', duration: 4000 });
+      setTimeout(() => renderLibrary(true), 1000);
+    }
+  } else {
+    _konamiIdx = e.key === _KONAMI[0] ? 1 : 0;
+  }
+});
+// ─── First-run Tutorial ───────────────────────────────────────────────────────
+
+const LAUNCHER_TUTORIAL_PROFILES = new Set(['arisa', 'tyheim']);
+
+const LAUNCHER_TUTORIAL_STEPS = [
+  {
+    emoji: '👋',
+    title: 'Welcome to N Games!',
+    body:  "This is your crew hub — games, leaderboards, messages, and more all in one place. Let's take a quick look around.",
+    tab:   null,
+  },
+  {
+    emoji: '🎮',
+    title: 'The Library',
+    body:  'The Library is your home base. Every crew game lives here — launch, browse, or install straight from this tab.',
+    tab:   'library',
+  },
+  {
+    emoji: '📢',
+    title: 'The Wall',
+    body:  "Post clips, reactions, and highlights on the Wall. It's where the crew hangs out between sessions.",
+    tab:   'wall',
+  },
+  {
+    emoji: '🏆',
+    title: 'Leaderboard',
+    body:  'Track your NP (N Points) and see exactly where you rank in the crew. Every win counts.',
+    tab:   'leaderboard',
+  },
+  {
+    emoji: '🎵',
+    title: 'Radio',
+    body:  'Play music while you game — no subscriptions, no interruptions. Just pick a genre and hit play.',
+    tab:   'radio',
+  },
+  {
+    emoji: '📺',
+    title: 'N Apps',
+    body:  'N Streams lives here. Launch the streaming hub, check for updates, or download it if you haven\'t yet.',
+    tab:   'apps',
+  },
+  {
+    emoji: '✅',
+    title: "You're All Set!",
+    body:  "That's the full tour. Head to the Library, pick a game, and get in the session. Let's go! 🚀",
+    tab:   'library',
+  },
+];
+
+let _tutorialStep = 0;
+
+async function checkAndShowTutorial(profileId) {
+  if (!LAUNCHER_TUTORIAL_PROFILES.has(profileId)) return;
+  const done = await window.electron?.storeGet(`launcher_tutorial_done_${profileId}`);
+  if (done) return;
+  _tutorialStep = 0;
+  renderTutorialStep();
+  document.getElementById('tutorial-overlay').classList.add('visible');
+}
+
+function renderTutorialStep() {
+  const steps = LAUNCHER_TUTORIAL_STEPS;
+  const step  = steps[_tutorialStep];
+  const total = steps.length;
+  const isLast  = _tutorialStep === total - 1;
+  const isFirst = _tutorialStep === 0;
+
+  // Dots
+  const dots = document.getElementById('tut-dots');
+  dots.innerHTML = steps.map((_, i) => {
+    const cls = i === _tutorialStep ? 'tut-dot active' : i < _tutorialStep ? 'tut-dot done' : 'tut-dot';
+    const w   = i === _tutorialStep ? '20px' : i < _tutorialStep ? '12px' : '6px';
+    return `<div class="${cls}" style="width:${w}"></div>`;
+  }).join('');
+
+  document.getElementById('tutorial-emoji').textContent = step.emoji;
+  document.getElementById('tutorial-title').textContent = step.title;
+  document.getElementById('tutorial-body').textContent  = step.body;
+
+  // Navigate to highlighted tab (but don't block tutorial)
+  if (step.tab) switchTab(step.tab);
+
+  // Buttons
+  const backBtn = document.getElementById('tut-back-btn');
+  const nextBtn = document.getElementById('tut-next-btn');
+  backBtn.style.display = isFirst ? 'none' : '';
+  nextBtn.textContent   = isLast ? "Let's Go! 🚀" : 'Next →';
+}
+
+function tutorialNext() {
+  const steps = LAUNCHER_TUTORIAL_STEPS;
+  if (_tutorialStep < steps.length - 1) {
+    _tutorialStep++;
+    renderTutorialStep();
+  } else {
+    window.electron?.storeSet(`launcher_tutorial_done_${currentProfile.id}`, true);
+    document.getElementById('tutorial-overlay').classList.remove('visible');
+    switchTab('library');
+  }
+}
+
+function tutorialBack() {
+  if (_tutorialStep > 0) {
+    _tutorialStep--;
+    renderTutorialStep();
+  }
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+
+boot();
+</script>
+</body>
+</html>
