@@ -51,9 +51,54 @@ app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) creat
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Paths for a game's exe and version sidecar
+// Paths for a game's files
 function gameExePath(game_id)      { return path.join(GAMES_DIR, `${game_id}.exe`); }
+function gameDir(game_id)          { return path.join(GAMES_DIR, game_id); }
 function gameVersionPath(game_id)  { return path.join(GAMES_DIR, `${game_id}.version.json`); }
+
+// Resolve the actual EXE to launch — folder-extracted games store the path in version file
+function gameExePathResolved(game_id) {
+  try {
+    const data = JSON.parse(fs.readFileSync(gameVersionPath(game_id), 'utf8'));
+    if (data.exe_path && fs.existsSync(data.exe_path)) return data.exe_path;
+  } catch {}
+  return gameExePath(game_id); // fallback: portable single-exe style
+}
+
+// Extract a ZIP to destDir using PowerShell's built-in Expand-Archive (Windows 10+)
+function extractZip(zipPath, destDir) {
+  return new Promise((resolve, reject) => {
+    const { spawn: sp } = require('child_process');
+    // Remove dest first so we get a clean extract
+    if (fs.existsSync(destDir)) fs.rmSync(destDir, { recursive: true, force: true });
+    fs.mkdirSync(destDir, { recursive: true });
+    const ps = sp('powershell.exe', [
+      '-NonInteractive', '-NoProfile', '-Command',
+      `Expand-Archive -LiteralPath '${zipPath}' -DestinationPath '${destDir}' -Force`,
+    ], { stdio: 'pipe' });
+    ps.on('close', code => code === 0 ? resolve() : reject(new Error(`Expand-Archive exited ${code}`)));
+    ps.on('error', reject);
+  });
+}
+
+// Find the main game EXE inside an extracted folder (biggest .exe = the app, not helper stubs)
+function findMainExe(dir, game_id) {
+  const allExes = [];
+  function walk(d) {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const full = path.join(d, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.exe')) allExes.push(full);
+    }
+  }
+  walk(dir);
+  if (!allExes.length) return null;
+  // Prefer EXE whose name matches the game id (loose), then fall back to largest file
+  const nameLower = game_id.replace(/-/g, '').toLowerCase();
+  const byName = allExes.find(p => path.basename(p, '.exe').toLowerCase().replace(/[-_\s]/g, '') === nameLower);
+  if (byName) return byName;
+  return allExes.sort((a, b) => fs.statSync(b).size - fs.statSync(a).size)[0];
+}
 
 function readInstalledVersion(game_id) {
   try {
@@ -62,8 +107,8 @@ function readInstalledVersion(game_id) {
   } catch(e) { return null; }
 }
 
-function writeInstalledVersion(game_id, version) {
-  fs.writeFileSync(gameVersionPath(game_id), JSON.stringify({ version, installed_at: Date.now() }));
+function writeInstalledVersion(game_id, version, exe_path = null) {
+  fs.writeFileSync(gameVersionPath(game_id), JSON.stringify({ version, exe_path, installed_at: Date.now() }));
 }
 
 function httpsGet(url) {
@@ -121,7 +166,7 @@ ipcMain.handle('shell:open', (_, url) => shell.openExternal(url));
 
 // ── IPC: install info ─────────────────────────────────────────────────────────
 ipcMain.handle('game:install-info', (_, game_id) => {
-  const exePath   = gameExePath(game_id);
+  const exePath   = gameExePathResolved(game_id);
   const installed = fs.existsSync(exePath);
   return {
     installed,
@@ -139,8 +184,11 @@ ipcMain.handle('game:check-update', async (_, { releases_url }) => {
     if (status !== 200) return null;
     const data = JSON.parse(body);
     const remote_version = (data.tag_name || '').replace(/^v/, '');
-    // Look for .exe asset
-    const asset = (data.assets || []).find(a => a.name.endsWith('.exe'));
+    // Prefer a ZIP package (full folder install) over a bare .exe
+    const assets = data.assets || [];
+    const zipAsset = assets.find(a => a.name.endsWith('.zip'));
+    const exeAsset = assets.find(a => a.name.endsWith('.exe'));
+    const asset = zipAsset || exeAsset;
     return {
       remote_version,
       notes:      data.body   || '',
@@ -150,18 +198,35 @@ ipcMain.handle('game:check-update', async (_, { releases_url }) => {
   } catch(e) { return null; }
 });
 
-// ── IPC: install / update (download portable .exe from GitHub release) ────────
+// ── IPC: install / update ─────────────────────────────────────────────────────
+// Handles both portable single .exe and full ZIP packages (Electron apps etc.)
 ipcMain.handle('game:install', async (event, { game_id, asset_url, remote_version }) => {
-  const dest = gameExePath(game_id);
+  const isZip = asset_url && asset_url.toLowerCase().endsWith('.zip');
+  const tmpDest = isZip
+    ? path.join(os.tmpdir(), `${game_id}.zip`)
+    : gameExePath(game_id);
+
   try {
-    await httpsDownload(asset_url, dest, (pct) => {
+    await httpsDownload(asset_url, tmpDest, (pct) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('game:download-progress', { game_id, pct });
       }
     });
+
+    let exePath;
+    if (isZip) {
+      const dest = gameDir(game_id);
+      await extractZip(tmpDest, dest);
+      fs.unlinkSync(tmpDest); // clean up zip
+      exePath = findMainExe(dest, game_id);
+      if (!exePath) throw new Error('No executable found in ZIP');
+    } else {
+      exePath = tmpDest;
+    }
+
     const version = remote_version || 'unknown';
-    writeInstalledVersion(game_id, version);
-    return { ok: true, file_path: dest, installed_version: version };
+    writeInstalledVersion(game_id, version, isZip ? exePath : null);
+    return { ok: true, file_path: exePath, installed_version: version };
   } catch(e) {
     return { ok: false, error: e.message };
   }
@@ -193,13 +258,14 @@ ipcMain.handle('game:launch', (_, game) => {
     if (proc && !proc.killed) return { ok: true, already_open: true };
   }
 
-  const exePath = gameExePath(game.id);
+  const exePath = gameExePathResolved(game.id);
   if (!fs.existsSync(exePath)) return { ok: false, error: 'not_installed' };
 
   try {
     const proc = spawn(exePath, [], {
       detached: true,   // game runs independently of launcher
       stdio:    'ignore',
+      cwd:      path.dirname(exePath), // launch from game's own directory
     });
     proc.unref(); // don't keep launcher alive for the game's sake
 
