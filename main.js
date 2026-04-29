@@ -127,14 +127,34 @@ function httpsGet(url) {
 
 function httpsDownload(url, destPath, onProgress) {
   return new Promise((resolve, reject) => {
-    const follow = (u) => {
+    // Track whether we've already resolved/rejected to prevent double-calls
+    let settled = false;
+    const done = (err) => {
+      if (settled) return;
+      settled = true;
+      if (err) reject(err); else resolve();
+    };
+
+    const follow = (u, redirects = 0) => {
+      if (redirects > 10) return done(new Error('Too many redirects'));
       https.get(u, { headers: { 'User-Agent': 'NGames-Launcher' } }, res => {
-        if ([301,302,307,308].includes(res.statusCode) && res.headers.location) return follow(res.headers.location);
-        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+        // Follow ALL redirect codes including 303 (GitHub uses this for release assets)
+        if ([301,302,303,307,308].includes(res.statusCode) && res.headers.location) {
+          res.resume(); // consume the redirect body so the socket can be reused
+          return follow(res.headers.location, redirects + 1);
+        }
+        if (res.statusCode !== 200) {
+          res.resume();
+          return done(new Error(`HTTP ${res.statusCode}`));
+        }
 
         const total = parseInt(res.headers['content-length'] || '0', 10);
         let downloaded = 0;
         const tmp = destPath + '.downloading';
+
+        // Remove any leftover temp file from a previous failed attempt
+        try { fs.unlinkSync(tmp); } catch (_) {}
+
         const out = fs.createWriteStream(tmp);
 
         res.on('data', chunk => {
@@ -143,10 +163,42 @@ function httpsDownload(url, destPath, onProgress) {
             onProgress(Math.round((downloaded / total) * 100));
           }
         });
+
         res.pipe(out);
-        out.on('finish', () => { fs.renameSync(tmp, destPath); resolve(); });
-        out.on('error', e => { try { fs.unlinkSync(tmp); } catch(_) {} reject(e); });
-      }).on('error', reject);
+
+        out.on('finish', () => {
+          // Verify the file was actually written before renaming
+          if (!fs.existsSync(tmp)) {
+            return done(new Error('Download incomplete: temp file missing after write'));
+          }
+          try {
+            // Remove stale destination if it exists, then rename
+            try { fs.unlinkSync(destPath); } catch (_) {}
+            fs.renameSync(tmp, destPath);
+            done();
+          } catch (renameErr) {
+            // Fallback: copy then delete (handles cross-device or locked-file edge cases)
+            try {
+              fs.copyFileSync(tmp, destPath);
+              try { fs.unlinkSync(tmp); } catch (_) {}
+              done();
+            } catch (copyErr) {
+              done(new Error(`Failed to save download: ${renameErr.message}`));
+            }
+          }
+        });
+
+        out.on('error', e => {
+          try { fs.unlinkSync(tmp); } catch (_) {}
+          done(e);
+        });
+
+        res.on('error', e => {
+          try { fs.unlinkSync(tmp); } catch (_) {}
+          done(e);
+        });
+
+      }).on('error', done);
     };
     follow(url);
   });
