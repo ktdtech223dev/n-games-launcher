@@ -2561,6 +2561,7 @@ function gameName(id) {
   if (id==='chaos-casino'||id==='chaos-holdem') return 'Chaos Casino';
   if (id==='blacks-dungeon') return 'Shape of Blacks';
   if (id==='interrogating-blacks') return 'Interrogating Blacks';
+  if (id==='bbg') return 'BBG (Black Bored Games)';
   const names = { 'chaos-holdem': 'Hold\'Em', 'launcher': 'Launcher', 'blacks-dungeon': 'Shape' };
   return names[id] || id;
 }
@@ -2631,6 +2632,9 @@ const GAME_REGISTRY = {
   },
   'interrogating-blacks': {
     releases_url: 'https://api.github.com/repos/ktdtech223dev/InterrogatingBlacks/releases/latest',
+  },
+  'bbg': {
+    releases_url: 'https://api.github.com/repos/ktdtech223dev/bbg-black-board-games/releases/latest',
   },
 };
 
@@ -2802,6 +2806,7 @@ function makeGameCard(g) {
     'chaos-casino':   'https://ngames-server-production.up.railway.app/assets/chaos-holdem-banner.png',
     'chaos-holdem':   'https://ngames-server-production.up.railway.app/assets/chaos-holdem-banner.png',
     'interrogating-blacks':  'https://ngames-server-production.up.railway.app/assets/ib-banner.jpg',
+    'bbg':                   'https://ngames-server-production.up.railway.app/assets/bbg-banner.jpg',
   };
   const artUrl = HARDCODED_BANNERS[g.id] || (g.art_url ? `https://ngames-server-production.up.railway.app${g.art_url}` : null);
 
@@ -4911,7 +4916,7 @@ const RECORD_META = {
 
 function renderRecords(data, el) {
   // Always show all 5 games, even with no records yet
-  const allGames = ['blacks-dungeon', 'chaos-casino', 'case-sim', 'cuunsurf', 'interrogating-blacks'];
+  const allGames = ['blacks-dungeon', 'chaos-casino', 'case-sim', 'cuunsurf', 'interrogating-blacks', 'bbg'];
   const merged   = { ...Object.fromEntries(allGames.map(g => [g, {}])), ...data };
   let html = '';
   for (const [gid, r] of Object.entries(merged)) {
