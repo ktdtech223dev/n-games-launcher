@@ -1,6 +1,6 @@
 {
   "name": "ngames-launcher",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "N Games Network Launcher",
   "main": "main.js",
   "scripts": {
