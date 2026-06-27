@@ -236,11 +236,20 @@ ipcMain.handle('game:check-update', async (_, { releases_url }) => {
     if (status !== 200) return null;
     const data = JSON.parse(body);
     const remote_version = (data.tag_name || '').replace(/^v/, '');
-    // Prefer a ZIP package (full folder install) over a bare .exe
-    const assets = data.assets || [];
-    const zipAsset = assets.find(a => a.name.endsWith('.zip'));
-    const exeAsset = assets.find(a => a.name.endsWith('.exe'));
-    const asset = zipAsset || exeAsset;
+    // Pick the Windows desktop build. Releases can also carry Android (.apk),
+    // Linux (.AppImage), macOS (.dmg) and Kodi addon zips (plugin.*/repository.*) —
+    // none of those are installable by this launcher, so ignore them. A real
+    // Windows .exe wins; a non-addon .zip is only a fallback for zip-packaged apps.
+    const isWindowsAsset = (a) => {
+      const n = (a.name || '').toLowerCase();
+      if (/\.(apk|appimage|dmg|deb|rpm|tar\.gz)$/.test(n)) return false;          // other platforms
+      if (n.endsWith('.zip') && /^(plugin|repository)[.\-]/i.test(a.name)) return false; // Kodi addon zips
+      return n.endsWith('.exe') || n.endsWith('.zip');
+    };
+    const assets   = (data.assets || []).filter(isWindowsAsset);
+    const exeAsset = assets.find(a => a.name.toLowerCase().endsWith('.exe'));
+    const zipAsset = assets.find(a => a.name.toLowerCase().endsWith('.zip'));
+    const asset    = exeAsset || zipAsset;
     return {
       remote_version,
       notes:      data.body   || '',
