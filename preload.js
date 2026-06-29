@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('electron', {
   installGame:     (opts)     => ipcRenderer.invoke('game:install', opts),
   browseGame:      (game_id)  => ipcRenderer.invoke('game:browse', game_id),
   launchGame:      (game)     => ipcRenderer.invoke('game:launch', game),
+  setActiveProfile:(id)       => ipcRenderer.invoke('set-active-profile', id),
   isGameRunning:   (game_id)  => ipcRenderer.invoke('game:is-running', game_id),
   // Events
   onGameLaunched:          (fn) => { _launchFn           = fn; },

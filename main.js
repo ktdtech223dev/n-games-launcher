@@ -27,6 +27,7 @@ if (!fs.existsSync(GAMES_DIR)) fs.mkdirSync(GAMES_DIR, { recursive: true });
 // ── Window refs ───────────────────────────────────────────────────────────────
 let mainWindow;
 const gameProcesses = new Map(); // game_id → child process
+let activeProfileId = null;      // current crew profile, passed to launched games via env
 
 // ── Create launcher window ────────────────────────────────────────────────────
 function createWindow() {
@@ -311,6 +312,9 @@ ipcMain.handle('game:browse', async (_, game_id) => {
   return { file_path: dest, installed_version: readInstalledVersion(game_id) };
 });
 
+// ── IPC: remember the active crew profile (passed to launched games via env) ──
+ipcMain.handle('set-active-profile', (_, id) => { activeProfileId = id || null; return { ok: true }; });
+
 // ── IPC: launch game exe ──────────────────────────────────────────────────────
 ipcMain.handle('game:launch', (_, game) => {
   // If already running, just notify
@@ -327,6 +331,9 @@ ipcMain.handle('game:launch', (_, game) => {
       detached: true,   // game runs independently of launcher
       stdio:    'ignore',
       cwd:      path.dirname(exePath), // launch from game's own directory
+      // Hand the active crew identity + game id to SDK-aware games so they can
+      // attribute presence/achievements without their own login.
+      env: { ...process.env, NGAMES_PROFILE: activeProfileId || '', NGAMES_GAME_ID: game.id },
     });
     proc.unref(); // don't keep launcher alive for the game's sake
 

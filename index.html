@@ -2244,7 +2244,7 @@ const SERVER       = 'https://ngames-server-production.up.railway.app';
 const CHAOS_SERVER = 'https://chaos-holdem-server3-production.up.railway.app';
 
 // ─── Launcher version + auto-update ───────────────────────────────────────────
-const LAUNCHER_VERSION          = '1.6.7';
+const LAUNCHER_VERSION          = '1.6.8';
 const LAUNCHER_RELEASES_URL     = 'https://api.github.com/repos/ktdtech223dev/n-games-launcher/releases/latest';
 
 const CREW = [
@@ -2301,6 +2301,9 @@ function showProfileSelect() {
 async function selectProfile(id) {
   currentProfile = CREW.find(c => c.id === id);
   if (!currentProfile) return;
+
+  // Tell the main process who's active so launched games inherit NGAMES_PROFILE
+  window.electron?.setActiveProfile?.(id);
 
   document.getElementById('profile-select').classList.add('hidden');
   document.getElementById('shell').classList.remove('hidden');
@@ -2567,6 +2570,15 @@ function gameName(id) {
   return names[id] || id;
 }
 
+// Resolve the real game a crew member is playing from a presence payload.
+// The launcher's own pings report top-level game_id='launcher' with the real
+// game inside game_state; a game's own SDK ping reports it at top-level.
+function effectiveGameId(p) {
+  if (!p) return null;
+  const gs = p.game_state || {};
+  return gs.game_id || gs.game || (p.game_id && p.game_id !== 'launcher' ? p.game_id : null) || null;
+}
+
 function onPresenceEvent(msg) {
   const prev    = presence[msg.profile_id];
   const wasOnline = prev?.online === 1;
@@ -2592,8 +2604,11 @@ function onPresenceEvent(msg) {
   const crew = CREW.find(c => c.id === msg.profile_id);
   if (!crew) return;
 
+  const prevGame = effectiveGameId(prev);
+  const newGame  = effectiveGameId(msg);
+
   if (!wasOnline && isOnline) {
-    const gameStr = msg.game_id ? ` · Playing ${gameShortName(msg.game_id)}` : '';
+    const gameStr = newGame ? ` · Playing ${gameName(newGame)}` : '';
     showToast({
       title:   `${crew.name} is online`,
       sub:     `Just joined${gameStr}`,
@@ -2608,6 +2623,16 @@ function onPresenceEvent(msg) {
       initial: crew.initial,
       duration: 3000,
     });
+  }
+
+  // Desktop notification when a crew member opens a game — fires once on the
+  // transition INTO a game (not on repeated heartbeats, not on close).
+  if (isOnline && newGame && newGame !== prevGame) {
+    sendDesktopNotification(
+      `${crew.name} opened ${gameName(newGame)}`,
+      'Jump in?',
+      () => { try { window.focus(); switchTab('library'); } catch (e) {} }
+    );
   }
 }
 
